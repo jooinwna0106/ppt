@@ -10,10 +10,13 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, "..");
 const uploadRoot = process.env.UPLOAD_DIR ? path.resolve(process.env.UPLOAD_DIR) : path.join(rootDir, "uploads");
+const dataRoot = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(rootDir, "data");
+const roomsFile = path.join(dataRoot, "rooms.json");
 const distDir = path.join(rootDir, "dist");
 const PORT = Number(process.env.PORT) || 4000;
 
 fs.mkdirSync(uploadRoot, { recursive: true });
+fs.mkdirSync(dataRoot, { recursive: true });
 
 const app = express();
 const server = http.createServer(app);
@@ -25,6 +28,7 @@ const io = new Server(server, {
 });
 
 const rooms = new Map();
+loadRooms();
 
 app.set("trust proxy", 1);
 app.use(express.json());
@@ -33,6 +37,21 @@ app.use(express.static(distDir));
 
 app.get("/healthz", (req, res) => {
   res.json({ ok: true });
+});
+
+app.get("/api/rooms", (req, res) => {
+  const summaries = [...rooms.values()]
+    .sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0))
+    .map((room) => ({
+      code: room.code,
+      slideCount: room.slides.length,
+      playerCount: room.players.length,
+      currentSlide: room.currentSlide,
+      ended: room.ended,
+      createdAt: room.createdAt,
+      updatedAt: room.updatedAt || room.createdAt
+    }));
+  res.json({ rooms: summaries });
 });
 
 const storage = multer.diskStorage({
@@ -97,6 +116,8 @@ app.post("/api/rooms/:roomCode/slides", upload.array("slides"), (req, res) => {
   room.buzzes = [];
   room.activeBuzzIndex = 0;
   room.ended = false;
+  room.lastJudgement = null;
+  touchAndSave(room);
   broadcastRoom(roomCode);
   res.json(toClientState(room));
 });
@@ -118,6 +139,7 @@ app.use((req, res) => {
 io.on("connection", (socket) => {
   socket.on("createRoom", (_, callback) => {
     const room = createRoom();
+    leavePreviousRoom(socket, room.code);
     socket.join(room.code);
     socket.data.roomCode = room.code;
     socket.data.role = "host";
@@ -132,11 +154,20 @@ io.on("connection", (socket) => {
       callback?.({ ok: false, error: "방 코드를 확인해 주세요." });
       return;
     }
+    leavePreviousRoom(socket, code);
     socket.join(code);
     socket.data.roomCode = code;
     socket.data.role = role === "host" ? "host" : "viewer";
     callback?.({ ok: true, state: toClientState(room) });
     broadcastRoom(code);
+  });
+
+  socket.on("saveRoom", ({ roomCode }, callback) => {
+    const room = rooms.get(sanitizeRoomCode(roomCode));
+    if (!room) return callback?.({ ok: false, error: "방을 찾을 수 없습니다." });
+
+    touchAndSave(room);
+    callback?.({ ok: true, state: toClientState(room) });
   });
 
   socket.on("updatePlayers", ({ roomCode, players }, callback) => {
@@ -151,6 +182,7 @@ io.on("connection", (socket) => {
     room.buzzes = room.buzzes.filter((buzz) => room.players.some((player) => player.id === buzz.playerId));
     room.activeBuzzIndex = Math.min(room.activeBuzzIndex, Math.max(room.buzzes.length - 1, 0));
     room.ended = false;
+    touchAndSave(room);
     broadcastRoom(room.code);
     callback?.({ ok: true, state: toClientState(room) });
   });
@@ -165,6 +197,7 @@ io.on("connection", (socket) => {
       room.currentSlide = clamp(Number(index), 0, room.slides.length - 1);
     }
     resetBuzzer(room);
+    touchAndSave(room);
     broadcastRoom(room.code);
     callback?.({ ok: true, state: toClientState(room) });
   });
@@ -178,6 +211,7 @@ io.on("connection", (socket) => {
     room.activeBuzzIndex = 0;
     room.buzzerOpenedAt = room.buzzerActive ? Date.now() : null;
     room.ended = false;
+    room.lastJudgement = null;
     broadcastRoom(room.code);
     callback?.({ ok: true, state: toClientState(room) });
   });
@@ -254,6 +288,7 @@ io.on("connection", (socket) => {
       }
     }
 
+    touchAndSave(room);
     broadcastRoom(room.code);
     callback?.({ ok: true, state: toClientState(room) });
   });
@@ -266,6 +301,20 @@ io.on("connection", (socket) => {
     room.buzzerActive = false;
     room.buzzes = [];
     room.activeBuzzIndex = 0;
+    room.lastJudgement = null;
+    touchAndSave(room);
+    broadcastRoom(room.code);
+    callback?.({ ok: true, state: toClientState(room) });
+  });
+
+  socket.on("restartQuiz", ({ roomCode }, callback) => {
+    const room = rooms.get(sanitizeRoomCode(roomCode));
+    if (!room) return callback?.({ ok: false, error: "방을 찾을 수 없습니다." });
+
+    room.players = room.players.map((player) => ({ ...player, score: 0 }));
+    room.currentSlide = room.slides.length ? 0 : -1;
+    resetBuzzer(room);
+    touchAndSave(room);
     broadcastRoom(room.code);
     callback?.({ ok: true, state: toClientState(room) });
   });
@@ -277,6 +326,7 @@ io.on("connection", (socket) => {
     room.players = room.players.map((player) => ({ ...player, score: 0 }));
     room.ended = false;
     resetBuzzer(room);
+    touchAndSave(room);
     broadcastRoom(room.code);
     callback?.({ ok: true, state: toClientState(room) });
   });
@@ -303,9 +353,11 @@ function createRoom() {
     activeBuzzIndex: 0,
     ended: false,
     lastJudgement: null,
-    createdAt: Date.now()
+    createdAt: Date.now(),
+    updatedAt: Date.now()
   };
   rooms.set(code, room);
+  saveRooms();
   return room;
 }
 
@@ -360,10 +412,70 @@ function resetBuzzer(room) {
   room.ended = false;
 }
 
+function touchAndSave(room) {
+  room.updatedAt = Date.now();
+  saveRooms();
+}
+
+function loadRooms() {
+  if (!fs.existsSync(roomsFile)) return;
+
+  try {
+    const raw = JSON.parse(fs.readFileSync(roomsFile, "utf8"));
+    const storedRooms = Array.isArray(raw.rooms) ? raw.rooms : [];
+    for (const storedRoom of storedRooms) {
+      const code = sanitizeRoomCode(storedRoom.code);
+      if (!code) continue;
+
+      rooms.set(code, {
+        code,
+        slides: Array.isArray(storedRoom.slides) ? storedRoom.slides : [],
+        players: Array.isArray(storedRoom.players) && storedRoom.players.length
+          ? normalizePlayers(storedRoom.players, storedRoom.players)
+          : defaultPlayers(4),
+        currentSlide: Number.isInteger(storedRoom.currentSlide) ? storedRoom.currentSlide : -1,
+        buzzerActive: false,
+        buzzerOpenedAt: null,
+        buzzes: [],
+        activeBuzzIndex: 0,
+        ended: false,
+        lastJudgement: null,
+        createdAt: Number(storedRoom.createdAt) || Date.now(),
+        updatedAt: Number(storedRoom.updatedAt) || Number(storedRoom.createdAt) || Date.now()
+      });
+    }
+  } catch (error) {
+    console.error("저장된 방 정보를 읽지 못했습니다.", error);
+  }
+}
+
+function saveRooms() {
+  const payload = {
+    rooms: [...rooms.values()].map((room) => ({
+      code: room.code,
+      slides: room.slides,
+      players: room.players,
+      currentSlide: room.currentSlide,
+      ended: room.ended,
+      createdAt: room.createdAt,
+      updatedAt: room.updatedAt || room.createdAt
+    }))
+  };
+
+  fs.writeFileSync(roomsFile, JSON.stringify(payload, null, 2), "utf8");
+}
+
 function broadcastRoom(roomCode) {
   const room = rooms.get(roomCode);
   if (!room) return;
   io.to(roomCode).emit("roomState", toClientState(room));
+}
+
+function leavePreviousRoom(socket, nextRoomCode) {
+  const previousRoomCode = socket.data.roomCode;
+  if (previousRoomCode && previousRoomCode !== nextRoomCode) {
+    socket.leave(previousRoomCode);
+  }
 }
 
 function toClientState(room) {

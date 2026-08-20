@@ -214,6 +214,7 @@ h2 {
 }
 
 .start-actions,
+.saved-rooms,
 .tool-panel,
 .stage-panel,
 .judge-panel {
@@ -224,6 +225,53 @@ h2 {
 
 .start-actions {
   padding: 24px;
+}
+
+.saved-rooms {
+  grid-column: 1 / -1;
+  align-self: start;
+  padding: 18px;
+  margin-bottom: 26px;
+}
+
+.saved-room-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 10px;
+}
+
+.saved-room-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-height: 76px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent);
+  background: rgba(29, 31, 32, 0.03);
+}
+
+.saved-room-card > div:first-child {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.saved-room-card > div:last-child {
+  display: flex;
+  gap: 8px;
+}
+
+.saved-room-card strong {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 22px;
+  letter-spacing: 0.14em;
+}
+
+.saved-room-card span {
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.35;
 }
 
 .primary-action {
@@ -324,6 +372,7 @@ h2 {
 }
 
 .topbar-actions,
+.viewer-topbar-actions,
 .step-controls,
 .judge-actions {
   display: flex;
@@ -691,6 +740,15 @@ h2 {
   background: #f2f2f3;
 }
 
+.viewer-topbar-actions {
+  align-items: center;
+}
+
+.viewer-topbar-actions button {
+  border-color: rgba(242, 242, 243, 0.28);
+  color: #f2f2f3;
+}
+
 .viewer-stage {
   position: relative;
   min-height: 0;
@@ -1013,6 +1071,16 @@ kbd {
   font-weight: 900;
 }
 
+.ceremony-action {
+  min-width: min(360px, 100%);
+  min-height: 52px;
+  margin-top: 18px;
+  border-color: #f2f2f3;
+  color: var(--color-accent-900);
+  background: #f2f2f3;
+  font-size: 22px;
+}
+
 @keyframes rise {
   from {
     opacity: 0;
@@ -1108,6 +1176,7 @@ kbd {
 @media (max-width: 620px) {
   .join-row,
   .player-row,
+  .saved-room-card,
   .final-ranking div {
     grid-template-columns: 1fr;
   }
@@ -1126,6 +1195,12 @@ kbd {
   .judge-actions,
   .topbar-actions,
   .step-controls {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .saved-room-card > div:last-child,
+  .viewer-topbar-actions {
     display: grid;
     grid-template-columns: 1fr;
   }

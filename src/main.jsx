@@ -16,6 +16,7 @@ function App() {
   const [role, setRole] = useState(null);
   const [room, setRoom] = useState(null);
   const [joinCode, setJoinCode] = useState("");
+  const [savedRooms, setSavedRooms] = useState([]);
   const [message, setMessage] = useState("");
   const [connected, setConnected] = useState(socket.connected);
 
@@ -38,8 +39,31 @@ function App() {
     const requestedRole = params.get("role");
     if (roomCode && requestedRole) {
       joinRoom(requestedRole === "host" ? "host" : "viewer", roomCode);
+      return;
+    }
+
+    try {
+      const lastRoom = JSON.parse(localStorage.getItem("speedQuizLastRoom") || "null");
+      if (lastRoom?.code) setJoinCode(lastRoom.code);
+    } catch {
+      localStorage.removeItem("speedQuizLastRoom");
     }
   }, []);
+
+  useEffect(() => {
+    loadSavedRooms();
+  }, []);
+
+  async function loadSavedRooms() {
+    try {
+      const response = await fetch(`${SERVER_URL}/api/rooms`);
+      if (!response.ok) throw new Error("방 목록을 가져오지 못했습니다.");
+      const result = await response.json();
+      setSavedRooms(Array.isArray(result.rooms) ? result.rooms : []);
+    } catch {
+      setSavedRooms([]);
+    }
+  }
 
   function createRoom() {
     setMessage("");
@@ -51,6 +75,7 @@ function App() {
       setRole("host");
       setRoom(response.state);
       updateAddress(response.state.code, "host");
+      loadSavedRooms();
     });
   }
 
@@ -69,7 +94,13 @@ function App() {
       setRole(nextRole);
       setRoom(response.state);
       updateAddress(response.state.code, nextRole);
+      loadSavedRooms();
     });
+  }
+
+  function switchRole(nextRole) {
+    if (!room) return;
+    joinRoom(nextRole, room.code);
   }
 
   function updateAddress(roomCode, nextRole) {
@@ -77,6 +108,7 @@ function App() {
     url.searchParams.set("room", roomCode);
     url.searchParams.set("role", nextRole);
     window.history.replaceState({}, "", url);
+    localStorage.setItem("speedQuizLastRoom", JSON.stringify({ code: roomCode, role: nextRole }));
   }
 
   if (!room || !role) {
@@ -87,6 +119,8 @@ function App() {
         message={message}
         onCreate={createRoom}
         onJoin={() => joinRoom("viewer")}
+        onOpenRoom={(roomCode, nextRole) => joinRoom(nextRole, roomCode)}
+        savedRooms={savedRooms}
         setJoinCode={setJoinCode}
       />
     );
@@ -95,15 +129,28 @@ function App() {
   return (
     <div className={`app-shell ${role === "viewer" ? "viewer-shell" : ""}`}>
       {role === "host" ? (
-        <HostDashboard socket={socket} room={room} setMessage={setMessage} message={message} />
+        <HostDashboard
+          socket={socket}
+          room={room}
+          setMessage={setMessage}
+          message={message}
+          onRoomsChanged={loadSavedRooms}
+          onSwitchRole={() => switchRole("viewer")}
+        />
       ) : (
-        <ViewerScreen socket={socket} room={room} setMessage={setMessage} message={message} />
+        <ViewerScreen
+          socket={socket}
+          room={room}
+          setMessage={setMessage}
+          message={message}
+          onSwitchRole={() => switchRole("host")}
+        />
       )}
     </div>
   );
 }
 
-function StartScreen({ connected, joinCode, message, onCreate, onJoin, setJoinCode }) {
+function StartScreen({ connected, joinCode, message, onCreate, onJoin, onOpenRoom, savedRooms, setJoinCode }) {
   return (
     <main className="start-screen">
       <div className="start-nav">
@@ -142,20 +189,52 @@ function StartScreen({ connected, joinCode, message, onCreate, onJoin, setJoinCo
         </div>
         {message ? <p className="form-error">{message}</p> : null}
       </section>
+
+      {savedRooms.length ? (
+        <section className="saved-rooms blueprint-panel" aria-label="저장된 방">
+          <div className="panel-heading compact">
+            <div>
+              <p className="eyebrow">저장된 방</p>
+              <h2>바로 이어서 시작</h2>
+            </div>
+            <span className="count-badge">{savedRooms.length}개</span>
+          </div>
+          <div className="saved-room-list">
+            {savedRooms.map((savedRoom) => (
+              <article className="saved-room-card" key={savedRoom.code}>
+                <div>
+                  <strong>{savedRoom.code}</strong>
+                  <span>
+                    슬라이드 {savedRoom.slideCount}장 · 참가자 {savedRoom.playerCount}명 · {formatRoomTime(savedRoom.updatedAt)}
+                  </span>
+                </div>
+                <div>
+                  <button onClick={() => onOpenRoom(savedRoom.code, "host")}>호스트</button>
+                  <button onClick={() => onOpenRoom(savedRoom.code, "viewer")}>뷰어</button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </main>
   );
 }
 
-function HostDashboard({ socket, room, message, setMessage }) {
+function HostDashboard({ socket, room, message, setMessage, onRoomsChanged, onSwitchRole }) {
   const currentSlide = room.slides[room.currentSlide];
   const activePlayer = room.activeBuzz
     ? room.players.find((player) => player.id === room.activeBuzz.playerId)
     : null;
 
-  function emit(event, payload = {}) {
+  function emit(event, payload = {}, successMessage = "") {
     socket.emit(event, { roomCode: room.code, ...payload }, (response) => {
-      if (!response?.ok) setMessage(response?.error || "요청을 처리하지 못했습니다.");
-      else setMessage("");
+      if (!response?.ok) {
+        setMessage(response?.error || "요청을 처리하지 못했습니다.");
+        return;
+      }
+      setMessage(successMessage);
+      if (event === "saveRoom" || event === "restartQuiz" || event === "endQuiz") onRoomsChanged?.();
     });
   }
 
@@ -171,7 +250,10 @@ function HostDashboard({ socket, room, message, setMessage }) {
           <h1>SPEED QUIZ <span>{room.code}</span></h1>
         </div>
         <div className="topbar-actions">
+          <button onClick={onSwitchRole}>뷰어 화면</button>
           <CopyLinkButton room={room} role="viewer" label="뷰어 링크 복사" />
+          <button onClick={() => emit("saveRoom", {}, "방이 저장됐습니다.")}>방 저장</button>
+          <button onClick={() => emit("restartQuiz", {}, "처음 슬라이드로 돌아왔습니다.")}>처음부터 다시</button>
           <button className="danger-button" onClick={() => emit("endQuiz")}>퀴즈 종료</button>
         </div>
       </header>
@@ -217,7 +299,7 @@ function HostDashboard({ socket, room, message, setMessage }) {
         </aside>
       </section>
 
-      {room.ended ? <CeremonyOverlay room={room} hostMode /> : null}
+      {room.ended ? <CeremonyOverlay room={room} hostMode onRestart={() => emit("restartQuiz", {}, "처음 슬라이드로 돌아왔습니다.")} /> : null}
     </main>
   );
 }
@@ -411,7 +493,7 @@ function JudgePanel({ activeBuzz, activePlayer, emit, buzzerActive }) {
   );
 }
 
-function ViewerScreen({ socket, room, message, setMessage }) {
+function ViewerScreen({ socket, room, message, setMessage, onSwitchRole }) {
   const pressedRef = useRef(new Set());
   const currentSlide = room.slides[room.currentSlide];
   const activeTurn = room.activeBuzz;
@@ -482,7 +564,10 @@ function ViewerScreen({ socket, room, message, setMessage }) {
           <p className="eyebrow">방 코드 {room.code}</p>
           <h1>{room.buzzerActive ? "버저 오픈" : "퀴즈 진행 중"}</h1>
         </div>
-        <div className={`viewer-live ${room.buzzerActive ? "hot" : ""}`}>{room.buzzerActive ? "입력 가능" : "대기"}</div>
+        <div className="viewer-topbar-actions">
+          <button onClick={onSwitchRole}>호스트 화면</button>
+          <div className={`viewer-live ${room.buzzerActive ? "hot" : ""}`}>{room.buzzerActive ? "입력 가능" : "대기"}</div>
+        </div>
       </header>
 
       <section className="viewer-stage">
@@ -573,7 +658,7 @@ function SlideFrame({ slide, large = false, index = -1, total = 0 }) {
   );
 }
 
-function CeremonyOverlay({ room, hostMode = false }) {
+function CeremonyOverlay({ room, hostMode = false, onRestart }) {
   const podium = room.ranking.slice(0, 3);
   return (
     <div className={`ceremony ${hostMode ? "host-ceremony" : ""}`}>
@@ -598,6 +683,9 @@ function CeremonyOverlay({ room, hostMode = false }) {
             </div>
           ))}
         </div>
+        {hostMode && onRestart ? (
+          <button className="ceremony-action" onClick={onRestart}>시상식 끝내고 처음으로</button>
+        ) : null}
       </div>
     </div>
   );
@@ -640,6 +728,16 @@ function findDuplicateKeys(players) {
     return map;
   }, new Map());
   return new Set([...counts.entries()].filter(([, count]) => count > 1).map(([key]) => key));
+}
+
+function formatRoomTime(value) {
+  if (!value) return "방금";
+  return new Date(value).toLocaleString("ko-KR", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
 }
 
 createRoot(document.getElementById("root")).render(<App />);
