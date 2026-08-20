@@ -3,12 +3,12 @@ services:
     name: speed-quiz-show
     runtime: node
     plan: free
-    buildCommand: npm install && npm run build
+    buildCommand: npm ci && npm run build
     startCommand: npm start
     healthCheckPath: /healthz
     envVars:
       - key: NODE_VERSION
-        value: 24.17.0
+        value: 22.22.0
       - key: UPLOAD_DIR
         value: /tmp/speed-quiz-show/uploads
       - key: DATA_DIR

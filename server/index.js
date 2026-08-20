@@ -333,8 +333,8 @@ io.on("connection", (socket) => {
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`Speed Quiz Show server running on http://localhost:${PORT}`);
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`Speed Quiz Show server running on http://0.0.0.0:${PORT}`);
 });
 
 function createRoom() {
