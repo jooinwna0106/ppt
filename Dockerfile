@@ -12,7 +12,7 @@ FROM node:22-alpine AS runtime
 
 WORKDIR /app
 ENV NODE_ENV=production
-ENV PORT=4000
+ENV PORT=10000
 
 COPY package*.json ./
 RUN npm ci --omit=dev
@@ -20,8 +20,8 @@ RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/server ./server
 
-RUN mkdir -p uploads
+RUN mkdir -p /tmp/speed-quiz-show/uploads /tmp/speed-quiz-show/data
 
-EXPOSE 4000
+EXPOSE 10000
 
 CMD ["npm", "start"]

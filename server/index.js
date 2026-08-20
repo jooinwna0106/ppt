@@ -21,6 +21,8 @@ ensureDirectory(dataRoot, "방 저장");
 
 const app = express();
 const server = http.createServer(app);
+server.keepAliveTimeout = 120000;
+server.headersTimeout = 120000;
 const io = new Server(server, {
   cors: {
     origin: true,
