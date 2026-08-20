@@ -854,6 +854,54 @@ kbd {
   font-style: normal;
 }
 
+.judgement-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 14px;
+  text-align: center;
+  color: #f2f2f3;
+  pointer-events: none;
+  animation: judgementPop 220ms ease-out both;
+}
+
+.judgement-overlay span {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 14px;
+  letter-spacing: 0.38em;
+  opacity: 0.78;
+}
+
+.judgement-overlay strong {
+  font-family: var(--font-heading);
+  font-size: clamp(78px, 12vw, 156px);
+  line-height: 0.86;
+}
+
+.judgement-overlay em {
+  font-family: var(--font-heading);
+  font-size: clamp(28px, 4vw, 54px);
+  font-style: normal;
+  font-weight: 700;
+}
+
+.judgement-correct {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.2), transparent 34%),
+    rgba(52, 132, 85, 0.92);
+  box-shadow: inset 0 0 0 10px #dfffe8;
+}
+
+.judgement-wrong {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.16), transparent 34%),
+    rgba(166, 56, 44, 0.94);
+  box-shadow: inset 0 0 0 10px #ffe5df;
+}
+
 .ceremony {
   position: fixed;
   inset: 0;
@@ -1007,6 +1055,17 @@ kbd {
   }
   45% {
     transform: translateY(4px);
+  }
+}
+
+@keyframes judgementPop {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 

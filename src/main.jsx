@@ -414,7 +414,8 @@ function JudgePanel({ activeBuzz, activePlayer, emit, buzzerActive }) {
 function ViewerScreen({ socket, room, message, setMessage }) {
   const pressedRef = useRef(new Set());
   const currentSlide = room.slides[room.currentSlide];
-  const leader = room.buzzes[0];
+  const activeTurn = room.activeBuzz;
+  const [judgementFlash, setJudgementFlash] = useState(null);
 
   useEffect(() => {
     function onKeyDown(event) {
@@ -449,8 +450,33 @@ function ViewerScreen({ socket, room, message, setMessage }) {
     if (!room.buzzerActive) pressedRef.current.clear();
   }, [room.buzzerActive]);
 
+  useEffect(() => {
+    if (!room.lastJudgement?.at) {
+      setJudgementFlash(null);
+      return undefined;
+    }
+
+    const duration = room.lastJudgement.correct ? 5000 : 1000;
+    const elapsed = Date.now() - room.lastJudgement.at;
+    const remaining = Math.max(duration - elapsed, 0);
+
+    if (!remaining) {
+      setJudgementFlash(null);
+      return undefined;
+    }
+
+    setJudgementFlash({
+      correct: room.lastJudgement.correct,
+      playerName: room.lastJudgement.playerName,
+      nextName: room.lastJudgement.nextBuzz?.playerName || null
+    });
+
+    const timer = window.setTimeout(() => setJudgementFlash(null), remaining);
+    return () => window.clearTimeout(timer);
+  }, [room.lastJudgement?.at, room.lastJudgement?.correct]);
+
   return (
-    <main className={`viewer-layout ${room.buzzerActive ? "viewer-buzzer-open" : ""} ${leader ? "viewer-has-leader" : ""}`}>
+    <main className={`viewer-layout ${room.buzzerActive ? "viewer-buzzer-open" : ""} ${activeTurn ? "viewer-has-leader" : ""}`}>
       <header className="viewer-topbar">
         <div>
           <p className="eyebrow">방 코드 {room.code}</p>
@@ -461,7 +487,7 @@ function ViewerScreen({ socket, room, message, setMessage }) {
 
       <section className="viewer-stage">
         <SlideFrame slide={currentSlide} large index={room.currentSlide} total={room.slides.length} />
-        {room.buzzerActive && !leader ? (
+        {room.buzzerActive && !activeTurn && !judgementFlash ? (
           <div className="buzz-now-overlay">
             <span>BUZZ NOW</span>
             <strong>눌러!</strong>
@@ -472,16 +498,17 @@ function ViewerScreen({ socket, room, message, setMessage }) {
             </div>
           </div>
         ) : null}
-        {leader ? (
+        {activeTurn && !judgementFlash ? (
           <div className="leader-overlay">
-            <span>1ST BUZZ</span>
+            <span>{activeTurn.rank === 1 ? "1ST BUZZ" : "NEXT TURN"}</span>
             <div>
-              <kbd>{leader.key}</kbd>
-              <strong>{leader.playerName}</strong>
+              <kbd>{activeTurn.key}</kbd>
+              <strong>{activeTurn.playerName}</strong>
             </div>
-            <em>0 ms · 답변권 획득</em>
+            <em>{activeTurn.rank}등 · 답변 차례</em>
           </div>
         ) : null}
+        {judgementFlash ? <JudgementFlash flash={judgementFlash} /> : null}
       </section>
 
       <section className="viewer-bottom">
@@ -496,7 +523,7 @@ function ViewerScreen({ socket, room, message, setMessage }) {
         </div>
         <div className="viewer-rank">
           <p className="eyebrow">버저 결과</p>
-          <h2>{leader ? `${leader.playerName} 1등` : room.buzzerActive ? "먼저 누르세요" : "호스트 대기 중"}</h2>
+          <h2>{activeTurn ? `${activeTurn.playerName} 차례` : room.buzzerActive ? "먼저 누르세요" : "호스트 대기 중"}</h2>
           <ol>
             {room.buzzes.slice(0, 6).map((buzz, index) => (
               <li className={index === room.activeBuzzIndex ? "active-buzz" : ""} key={buzz.id}>
@@ -511,6 +538,22 @@ function ViewerScreen({ socket, room, message, setMessage }) {
 
       {room.ended ? <CeremonyOverlay room={room} /> : null}
     </main>
+  );
+}
+
+function JudgementFlash({ flash }) {
+  return (
+    <div className={`judgement-overlay ${flash.correct ? "judgement-correct" : "judgement-wrong"}`}>
+      <span>{flash.correct ? "CORRECT" : "WRONG"}</span>
+      <strong>{flash.correct ? "정답입니다" : "오답입니다"}</strong>
+      <em>
+        {flash.correct
+          ? `${flash.playerName} +1점`
+          : flash.nextName
+            ? `다음 사람 차례! ${flash.nextName}`
+            : "다음 사람 없음"}
+      </em>
+    </div>
   );
 }
 

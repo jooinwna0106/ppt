@@ -224,14 +224,33 @@ io.on("connection", (socket) => {
       player.score += 1;
       room.buzzerActive = false;
       room.activeBuzzIndex = room.buzzes.findIndex((buzz) => buzz.playerId === player.id);
-      room.lastJudgement = { playerId: player.id, correct: true, at: Date.now() };
+      room.lastJudgement = {
+        playerId: player.id,
+        playerName: player.name,
+        key: player.key,
+        rank: room.activeBuzzIndex + 1,
+        correct: true,
+        nextBuzz: null,
+        at: Date.now()
+      };
     } else {
       player.score -= 1;
-      room.lastJudgement = { playerId: player.id, correct: false, at: Date.now() };
+      const currentRank = room.activeBuzzIndex + 1;
+      const nextBuzz = room.buzzes[room.activeBuzzIndex + 1]
+        ? { ...room.buzzes[room.activeBuzzIndex + 1], rank: room.activeBuzzIndex + 2 }
+        : null;
+      room.lastJudgement = {
+        playerId: player.id,
+        playerName: player.name,
+        key: player.key,
+        rank: currentRank,
+        correct: false,
+        nextBuzz,
+        at: Date.now()
+      };
       room.activeBuzzIndex += 1;
       if (room.activeBuzzIndex >= room.buzzes.length) {
         room.buzzerActive = false;
-        room.activeBuzzIndex = Math.max(room.buzzes.length - 1, 0);
       }
     }
 
@@ -348,6 +367,7 @@ function broadcastRoom(roomCode) {
 }
 
 function toClientState(room) {
+  const rankedBuzzes = room.buzzes.map((buzz, index) => ({ ...buzz, rank: index + 1 }));
   const ranking = room.players
     .slice()
     .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name, "ko"));
@@ -357,9 +377,9 @@ function toClientState(room) {
     players: room.players,
     currentSlide: room.currentSlide,
     buzzerActive: room.buzzerActive,
-    buzzes: room.buzzes.map((buzz, index) => ({ ...buzz, rank: index + 1 })),
+    buzzes: rankedBuzzes,
     activeBuzzIndex: room.activeBuzzIndex,
-    activeBuzz: room.buzzes[room.activeBuzzIndex] || null,
+    activeBuzz: rankedBuzzes[room.activeBuzzIndex] || null,
     ended: room.ended,
     ranking,
     lastJudgement: room.lastJudgement
