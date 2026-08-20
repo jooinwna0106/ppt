@@ -10,4 +10,6 @@ services:
       - key: NODE_VERSION
         value: 24.17.0
       - key: UPLOAD_DIR
-        value: ./uploads
+        value: /tmp/speed-quiz-show/uploads
+      - key: DATA_DIR
+        value: /tmp/speed-quiz-show/data

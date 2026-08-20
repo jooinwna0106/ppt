@@ -9,14 +9,15 @@ import { Server } from "socket.io";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, "..");
-const uploadRoot = process.env.UPLOAD_DIR ? path.resolve(process.env.UPLOAD_DIR) : path.join(rootDir, "uploads");
-const dataRoot = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(rootDir, "data");
+const runtimeDataRoot = process.env.RENDER === "true" ? "/tmp/speed-quiz-show" : rootDir;
+const uploadRoot = process.env.UPLOAD_DIR ? path.resolve(process.env.UPLOAD_DIR) : path.join(runtimeDataRoot, "uploads");
+const dataRoot = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(runtimeDataRoot, "data");
 const roomsFile = path.join(dataRoot, "rooms.json");
 const distDir = path.join(rootDir, "dist");
 const PORT = Number(process.env.PORT) || 4000;
 
-fs.mkdirSync(uploadRoot, { recursive: true });
-fs.mkdirSync(dataRoot, { recursive: true });
+ensureDirectory(uploadRoot, "업로드");
+ensureDirectory(dataRoot, "방 저장");
 
 const app = express();
 const server = http.createServer(app);
@@ -418,9 +419,9 @@ function touchAndSave(room) {
 }
 
 function loadRooms() {
-  if (!fs.existsSync(roomsFile)) return;
-
   try {
+    if (!fs.existsSync(roomsFile)) return;
+
     const raw = JSON.parse(fs.readFileSync(roomsFile, "utf8"));
     const storedRooms = Array.isArray(raw.rooms) ? raw.rooms : [];
     for (const storedRoom of storedRooms) {
@@ -450,19 +451,32 @@ function loadRooms() {
 }
 
 function saveRooms() {
-  const payload = {
-    rooms: [...rooms.values()].map((room) => ({
-      code: room.code,
-      slides: room.slides,
-      players: room.players,
-      currentSlide: room.currentSlide,
-      ended: room.ended,
-      createdAt: room.createdAt,
-      updatedAt: room.updatedAt || room.createdAt
-    }))
-  };
+  try {
+    ensureDirectory(dataRoot, "방 저장");
+    const payload = {
+      rooms: [...rooms.values()].map((room) => ({
+        code: room.code,
+        slides: room.slides,
+        players: room.players,
+        currentSlide: room.currentSlide,
+        ended: room.ended,
+        createdAt: room.createdAt,
+        updatedAt: room.updatedAt || room.createdAt
+      }))
+    };
 
-  fs.writeFileSync(roomsFile, JSON.stringify(payload, null, 2), "utf8");
+    fs.writeFileSync(roomsFile, JSON.stringify(payload, null, 2), "utf8");
+  } catch (error) {
+    console.error("방 정보를 파일로 저장하지 못했습니다.", error);
+  }
+}
+
+function ensureDirectory(directory, label) {
+  try {
+    fs.mkdirSync(directory, { recursive: true });
+  } catch (error) {
+    console.error(`${label} 폴더를 준비하지 못했습니다: ${directory}`, error);
+  }
 }
 
 function broadcastRoom(roomCode) {
