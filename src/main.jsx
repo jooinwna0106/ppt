@@ -132,6 +132,7 @@ function App() {
         <HostDashboard
           socket={socket}
           room={room}
+          onRoomState={setRoom}
           setMessage={setMessage}
           message={message}
           onRoomsChanged={loadSavedRooms}
@@ -221,7 +222,7 @@ function StartScreen({ connected, joinCode, message, onCreate, onJoin, onOpenRoo
   );
 }
 
-function HostDashboard({ socket, room, message, setMessage, onRoomsChanged, onSwitchRole }) {
+function HostDashboard({ socket, room, onRoomState, message, setMessage, onRoomsChanged, onSwitchRole }) {
   const currentSlide = room.slides[room.currentSlide];
   const activePlayer = room.activeBuzz
     ? room.players.find((player) => player.id === room.activeBuzz.playerId)
@@ -233,6 +234,7 @@ function HostDashboard({ socket, room, message, setMessage, onRoomsChanged, onSw
         setMessage(response?.error || "요청을 처리하지 못했습니다.");
         return;
       }
+      if (response.state) onRoomState(response.state);
       setMessage(successMessage);
       if (event === "saveRoom" || event === "restartQuiz" || event === "endQuiz") onRoomsChanged?.();
     });
@@ -292,8 +294,8 @@ function HostDashboard({ socket, room, message, setMessage, onRoomsChanged, onSw
         </div>
 
         <aside className="side-stack">
-          <UploadPanel room={room} setMessage={setMessage} />
-          <PlayerSettings socket={socket} room={room} setMessage={setMessage} />
+          <UploadPanel room={room} onRoomState={onRoomState} setMessage={setMessage} />
+          <PlayerSettings socket={socket} room={room} onRoomState={onRoomState} setMessage={setMessage} />
           <Scoreboard players={room.players} />
           <BuzzRanking room={room} />
         </aside>
@@ -304,7 +306,7 @@ function HostDashboard({ socket, room, message, setMessage, onRoomsChanged, onSw
   );
 }
 
-function UploadPanel({ room, setMessage }) {
+function UploadPanel({ room, onRoomState, setMessage }) {
   const [busy, setBusy] = useState(false);
 
   async function uploadSlides(event) {
@@ -323,6 +325,7 @@ function UploadPanel({ room, setMessage }) {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "업로드에 실패했습니다.");
+      onRoomState(result);
     } catch (error) {
       setMessage(error.message);
     } finally {
@@ -349,7 +352,7 @@ function UploadPanel({ room, setMessage }) {
   );
 }
 
-function PlayerSettings({ socket, room, setMessage }) {
+function PlayerSettings({ socket, room, onRoomState, setMessage }) {
   const [draftPlayers, setDraftPlayers] = useState(room.players);
 
   useEffect(() => {
@@ -390,7 +393,10 @@ function PlayerSettings({ socket, room, setMessage }) {
   function savePlayers() {
     socket.emit("updatePlayers", { roomCode: room.code, players: draftPlayers }, (response) => {
       if (!response?.ok) setMessage(response?.error || "플레이어 설정을 저장하지 못했습니다.");
-      else setMessage("");
+      else {
+        if (response.state) onRoomState(response.state);
+        setMessage("");
+      }
     });
   }
 
