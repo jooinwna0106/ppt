@@ -1,0 +1,518 @@
+<title>10-3 인스타 심폐소생술</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Jua&display=swap">
+<style>
+  /* 레이아웃: 1600x900 고정 무대를 화면에 맞춰 축소. 상단은 인스타 스토리 진행바, 한 장 = 한 스토리 */
+  :root{
+    --bg:#0E0D12; --panel:#1B1922; --line:#2E2B38;
+    --pink:#FF3D7F; --orange:#FFB23F; --dm:#5B51F5;
+    --w:#F6F4FA; --gray:#8D8899; --dim:#55515F; --green:#3DDC84; --red:#FF4B4B;
+    --grad:linear-gradient(90deg,var(--orange),var(--pink));
+    --title:'Black Han Sans','Malgun Gothic','Apple SD Gothic Neo',sans-serif;
+    --body:'Jua','Malgun Gothic','Apple SD Gothic Neo',sans-serif;
+    color-scheme:dark;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  [hidden]{display:none!important}
+  html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var(--body);color:var(--w);user-select:none}
+  #stage{position:absolute;left:50%;top:50%;width:1600px;height:900px;transform-origin:center;background:var(--bg);overflow:hidden}
+
+  /* 스토리 진행바 */
+  #story{position:absolute;left:40px;right:40px;top:22px;display:flex;gap:8px;z-index:20}
+  #story i{flex:1;height:7px;border-radius:4px;background:#2b2833;overflow:hidden}
+  #story i b{display:block;height:100%;width:0;background:var(--grad)}
+  #story i.seen b{width:100%}
+  #story i.cur b{width:100%;animation:fillin .6s ease-out}
+  @keyframes fillin{from{width:0}}
+  #acct{position:absolute;left:40px;top:44px;z-index:20;display:flex;align-items:center;gap:14px;font-size:24px;color:var(--gray)}
+  #acct .av{width:44px;height:44px;border-radius:50%;padding:3px;background:var(--grad)}
+  #acct .av span{display:flex;width:100%;height:100%;border-radius:50%;background:var(--bg);align-items:center;justify-content:center;font-size:20px}
+  #acct b{color:var(--w);font-weight:400}
+
+  .slide{position:absolute;inset:0;padding:110px 120px 80px;display:flex;flex-direction:column;justify-content:center;
+    opacity:0;visibility:hidden;transform:scale(1.05);transition:opacity .4s, transform .4s, visibility .4s}
+  .slide.active{opacity:1;visibility:visible;transform:scale(1)}
+  .slide.prev{transform:scale(.95)}
+
+  h1{font-family:var(--title);font-weight:400;font-size:148px;line-height:1.05;letter-spacing:-2px}
+  h1 .g,h2 .g,.g{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  h2{font-family:var(--title);font-weight:400;font-size:76px;margin-bottom:40px;letter-spacing:-1px}
+  h2 small{font-family:var(--body);font-size:32px;color:var(--gray);margin-left:18px;letter-spacing:0}
+  p,li{font-size:40px;line-height:1.5}
+  .tag{display:inline-block;background:var(--grad);color:#14121a;font-size:30px;padding:6px 20px;border-radius:999px;margin-bottom:28px}
+  .pk{color:var(--pink)}.or{color:var(--orange)}.gr{color:var(--gray)}.green{color:var(--green)}.red{color:var(--red)}
+  .tiny{font-size:26px;color:var(--gray)}
+
+  /* 등장 애니메이션 */
+  .in{opacity:0}
+  .active .in{animation:up .6s cubic-bezier(.2,1.4,.4,1) forwards;animation-delay:var(--d,0s)}
+  @keyframes up{from{opacity:0;transform:translateY(50px)}to{opacity:1;transform:none}}
+  .wob{display:inline-block;animation:wob 1.8s ease-in-out infinite}
+  @keyframes wob{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)}}
+
+  /* 1. 표지 */
+  .s-title .emoji{position:absolute;right:140px;top:200px;font-size:250px;animation:wob 2.2s ease-in-out infinite}
+  .s-title .sub{font-size:50px;margin-top:24px}
+  .s-title .who{position:absolute;left:120px;bottom:70px;font-size:32px;color:var(--gray)}
+  .s-title .hint{position:absolute;right:120px;bottom:70px;font-size:24px;color:var(--dim)}
+
+  /* 2. 분석 */
+  .bar{display:flex;align-items:center;gap:24px;margin:16px 0}
+  .bar .lbl{width:420px;font-size:36px;text-align:right}
+  .bar .track{flex:1;height:54px;background:#24212c;border-radius:10px;overflow:hidden}
+  .bar .fill{height:100%;width:0;background:var(--grad);border-radius:10px;transition:width 1.2s cubic-bezier(.2,1,.3,1) 2.5s}
+  .active .bar .fill{width:var(--w)}
+  .bar .fill.r{background:var(--red)}
+  .bar b{width:120px;font-size:40px;font-weight:400}
+  .loader{position:absolute;inset:0;z-index:4;display:flex;align-items:center;justify-content:center;background:var(--bg);opacity:0;pointer-events:none}
+  .active .loader{animation:ld 2.6s forwards}
+  @keyframes ld{0%,88%{opacity:1}100%{opacity:0}}
+  .lbox{width:1000px;text-align:center}
+  .lbox .l1{font-size:46px}
+  .lbar{height:40px;background:#24212c;border-radius:10px;margin:30px 0;overflow:hidden}
+  .lbar div{height:100%;width:0;background:var(--grad)}
+  .active .lbar div{animation:lb 1.3s .2s cubic-bezier(.3,0,.2,1) forwards}
+  @keyframes lb{to{width:100%}}
+  .lbox .l2{font-size:42px;color:var(--red);opacity:0}
+  .active .lbox .l2{animation:shown .1s 1.5s forwards}
+  @keyframes shown{to{opacity:1}}
+
+  /* 3. 증거 자료 (DM) */
+  .ev{display:flex;gap:90px;align-items:center}
+  .phone{width:400px;height:560px;flex:none;background:#FBFBFD;border-radius:52px;border:12px solid #2a2733;color:#111;position:relative;overflow:hidden;font-family:-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif}
+  .phone .top{display:flex;align-items:center;gap:14px;padding:30px 22px 16px;border-bottom:1px solid #eee}
+  .phone .top .back{font-size:30px;color:#333}
+  .phone .top .pp{width:46px;height:46px;border-radius:50%;background:#d6d8de;display:flex;align-items:flex-end;justify-content:center;overflow:hidden;font-size:34px}
+  .phone .top b{font-size:24px}
+  .phone .prof{text-align:center;padding-top:18px}
+  .phone .prof .pp{width:110px;height:110px;margin:0 auto;border-radius:50%;background:#d6d8de;display:flex;align-items:flex-end;justify-content:center;font-size:84px;overflow:hidden}
+  .phone .prof b{display:block;font-size:28px;margin-top:12px}
+  .phone .prof span{display:block;font-size:17px;color:#888;margin-top:6px;line-height:1.4}
+  .phone .time{position:absolute;left:0;right:0;bottom:196px;text-align:center;font-size:16px;color:#999}
+  .phone .bub{position:absolute;right:16px;background:var(--dm);color:#fff;font-size:24px;padding:12px 22px;border-radius:26px;opacity:0}
+  .phone .b1{bottom:140px}.phone .b2{bottom:84px}
+  .active .phone .b1{animation:pop .35s 1s cubic-bezier(.2,1.6,.4,1) forwards}
+  .active .phone .b2{animation:pop .35s 1.6s cubic-bezier(.2,1.6,.4,1) forwards}
+  @keyframes pop{from{opacity:0;transform:scale(.4) translateY(20px)}to{opacity:1;transform:none}}
+  .phone .inp{position:absolute;left:14px;right:14px;bottom:18px;height:50px;border-radius:25px;background:#f1f1f4;display:flex;align-items:center;padding-left:18px;font-size:18px;color:#999;gap:10px}
+  .phone .inp i{width:34px;height:34px;border-radius:50%;background:var(--dm);font-style:normal;display:flex;align-items:center;justify-content:center;font-size:16px}
+  .evtext{flex:1}
+  .evtext li{list-style:none;font-size:42px;margin:10px 0}
+  .evtext li span{color:var(--gray);font-size:30px;margin-right:16px}
+  .stamp{display:inline-block;margin-top:34px;font-family:var(--title);font-size:84px;color:var(--red);border:10px solid var(--red);border-radius:20px;padding:0 34px;opacity:0;transform:rotate(-6deg)}
+  .active .stamp{animation:stamp .5s 2.4s cubic-bezier(.2,1.6,.4,1) forwards}
+  @keyframes stamp{from{opacity:0;transform:scale(3.5) rotate(-14deg)}to{opacity:1;transform:scale(1) rotate(-6deg)}}
+
+  /* 4. 원인 */
+  .pts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:30px}
+  .pt{background:var(--panel);border-radius:24px;padding:38px;border-top:10px solid var(--pink)}
+  .pt .e{font-size:90px}
+  .pt h3{font-family:var(--title);font-weight:400;font-size:46px;margin:12px 0}
+  .pt p{font-size:31px;line-height:1.45;color:#cfcbd8}
+
+  /* 5. before after */
+  .ba{display:flex;align-items:center;gap:50px;margin-top:10px}
+  .card{flex:1;background:var(--panel);border:4px solid var(--line);border-radius:24px;padding:40px;text-align:center}
+  .card .big{font-size:120px}
+  .card h3{font-family:var(--title);font-weight:400;font-size:60px;margin:10px 0}
+  .card p{font-size:32px;color:#bbb}
+  .card.after{border-color:var(--pink)}
+  .arrow{font-size:110px;animation:push 1s ease-in-out infinite}
+  @keyframes push{50%{transform:translateX(20px)}}
+  .when{margin-top:44px;font-size:40px;text-align:center;background:var(--panel);border-radius:16px;padding:20px}
+
+  /* 6. 역할 */
+  .roles{display:grid;gap:22px}
+  .role{display:flex;align-items:center;gap:34px;background:var(--panel);border-radius:18px;padding:22px 36px}
+  .role .e{font-size:74px;width:90px;text-align:center}
+  .role h3{font-family:var(--title);font-weight:400;font-size:42px;width:400px;line-height:1.15}
+  .role h3 small{display:block;font-family:var(--body);font-size:26px;color:var(--gray);margin-top:6px}
+  .role p{font-size:34px;flex:1}
+  .role.me{border:4px solid var(--pink)}
+  .role.me h3{color:var(--pink)}
+
+  /* 7. 루틴 맵 */
+  .qmap{position:relative;display:flex;align-items:flex-start;justify-content:space-between;margin:70px 0 50px;padding:0 10px}
+  .qline{position:absolute;left:100px;right:130px;top:85px;height:10px;border-radius:5px;
+    background:repeating-linear-gradient(90deg,#4a4655 0 26px,transparent 26px 44px);transform-origin:left;transform:scaleX(0)}
+  .active .qline{animation:draw 1.4s .2s ease-out forwards}
+  @keyframes draw{to{transform:scaleX(1)}}
+  .qn{position:relative;z-index:2;width:240px;text-align:center}
+  .qn .c{width:170px;height:170px;margin:0 auto;border-radius:50%;background:var(--panel);border:6px solid #3a3645;
+    display:flex;align-items:center;justify-content:center;font-size:78px}
+  .qn p{font-size:31px;margin-top:16px;line-height:1.25}
+  .qn p small{display:block;font-size:24px;color:var(--gray)}
+  .qn.now .c{border-color:var(--orange);animation:glow 1.4s infinite}
+  @keyframes glow{0%{box-shadow:0 0 0 0 rgba(255,178,63,.6)}70%{box-shadow:0 0 0 30px rgba(255,178,63,0)}100%{box-shadow:0 0 0 0 rgba(255,178,63,0)}}
+  .qn .here{position:absolute;top:-62px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:26px;
+    background:var(--orange);color:#14121a;padding:4px 16px;border-radius:10px;animation:bounce .9s ease-in-out infinite}
+  .qn.goal .c{width:220px;height:220px;margin-top:-25px;font-size:110px;border:none;background:var(--grad);position:relative}
+  .qn.goal .c span{display:flex;width:198px;height:198px;border-radius:50%;background:var(--bg);align-items:center;justify-content:center}
+  .qn.goal p{font-family:var(--title);font-size:48px;color:var(--pink)}
+  .qfoot{text-align:center;font-size:42px}
+  @keyframes bounce{50%{transform:translateY(-12px)}}
+
+  /* 8. 콘텐츠 그리드 */
+  .feed{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .post{background:var(--panel);border-radius:20px;padding:26px 28px;display:flex;gap:22px;align-items:center;border:3px solid transparent;transition:transform .2s,border-color .2s}
+  .post:hover{transform:translateY(-8px) rotate(-1.5deg);border-color:var(--pink)}
+  .post .e{font-size:72px}
+  .post h3{font-family:var(--title);font-weight:400;font-size:36px}
+  .post p{font-size:24px;color:var(--gray);line-height:1.35}
+  .post .lk{font-size:22px;color:var(--pink);margin-top:4px}
+  .post.boss{border-color:var(--orange)}
+
+  /* 9. 헌법 */
+  .law{list-style:none}
+  .law li{font-size:42px;margin:14px 0}
+  .law b{font-family:var(--title);font-weight:400;margin-right:20px}
+  .law i{font-style:normal;color:var(--gray);font-size:30px}
+
+  /* 10. 업로드 시뮬레이터 */
+  .sim{display:flex;gap:70px;align-items:center}
+  .ig{width:620px;flex:none;background:var(--panel);border-radius:28px;padding:26px 30px;border:3px solid var(--line)}
+  .ig .hd{display:flex;align-items:center;gap:26px}
+  .ig .ring{width:120px;height:120px;border-radius:50%;padding:5px;background:#3a3645;transition:background .3s}
+  .ig .ring.live{background:var(--grad)}
+  .ig .ring span{display:flex;width:100%;height:100%;border-radius:50%;background:var(--bg);align-items:center;justify-content:center;font-family:var(--title);font-size:40px}
+  .ig .st{display:flex;gap:28px;text-align:center}
+  .ig .st b{display:block;font-family:var(--title);font-weight:400;font-size:44px;font-variant-numeric:tabular-nums}
+  .ig .st span{font-size:22px;color:var(--gray)}
+  .ig .nm{font-size:26px;margin:16px 0 18px}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;height:310px;align-content:start;overflow:hidden;position:relative}
+  .grid .cell{height:97px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:58px;animation:pop .35s cubic-bezier(.2,1.6,.4,1)}
+  .grid .empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--gray);font-size:30px;gap:10px}
+  .grid .empty span{font-size:80px;opacity:.5}
+  .simside{flex:1}
+  .simside p{font-size:38px}
+  .btn{font-family:var(--body);font-size:34px;background:var(--grad);color:#14121a;border:0;border-radius:16px;padding:18px 40px;cursor:pointer;margin:30px 14px 0 0}
+  .btn.ghost{background:#2a2733;color:var(--w)}
+  .btn:focus-visible{outline:4px solid var(--w);outline-offset:4px}
+  .simmsg{font-size:34px;min-height:56px;margin-top:26px;color:var(--orange)}
+
+  /* 11. QnA */
+  .qa{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+  .q{background:var(--panel);border-radius:20px;padding:28px 34px}
+  .q .qq{font-size:34px;color:var(--gray)}
+  .q .aa{font-size:37px;margin-top:10px}
+  .q .aa::before{content:"A. ";color:var(--pink);font-family:var(--title)}
+  .q .qq::before{content:"Q. ";font-family:var(--title)}
+
+  /* 12. 기대효과 */
+  .fx{list-style:none}
+  .fx li{font-size:48px;margin:12px 0;display:flex;align-items:center;gap:24px}
+  .fx li .up{color:var(--green);font-family:var(--title);display:inline-block;animation:bounce .9s ease-in-out infinite}
+  .fx li .note{font-size:30px;color:var(--gray)}
+
+  /* 13. 엔딩 */
+  .s-end{align-items:center;text-align:center}
+  .s-end .big{font-family:var(--title);font-size:260px;line-height:1}
+  .s-end p{font-size:44px}
+  .s-end .tiny{margin-top:30px}
+
+  /* 하트 */
+  .heart{position:absolute;z-index:40;pointer-events:none;font-size:70px;animation:float linear forwards}
+  @keyframes float{0%{opacity:0;transform:translateY(0) scale(.4)}12%{opacity:1;transform:translateY(-40px) scale(1)}100%{opacity:0;transform:translateY(-700px) translateX(var(--dx)) rotate(var(--rot)) scale(1.1)}}
+
+  #note{position:absolute;left:120px;right:120px;bottom:60px;z-index:45;background:rgba(10,9,14,.92);border:3px solid var(--pink);
+    border-radius:16px;padding:16px 26px;font-size:28px;line-height:1.45;display:none}
+  #note::before{content:"🎤 대본  ";color:var(--pink)}
+  #note.on{display:block}
+  #num{position:absolute;right:40px;bottom:30px;font-size:24px;color:var(--dim);z-index:6;font-variant-numeric:tabular-nums}
+  #fsHint{position:absolute;left:40px;bottom:30px;font-size:22px;color:#46424f;z-index:6}
+
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  }
+</style>
+
+<div id="stage">
+  <div id="story"></div>
+  <div id="acct"><div class="av"><span>📸</span></div><b>10학년 3반</b> · 미디어 환경부</div>
+
+  <!-- 1 표지 -->
+  <section class="slide s-title" data-note="안녕하세요, 미디어 환경부에서 업로드를 맡은 강지완입니다. 오늘은 거의 죽어있는 우리 반 SNS를 어떻게 살릴지 말해볼게요.">
+    <div class="emoji">📸</div>
+    <div><span class="tag in">10-3 학급 프로젝트 · 현수쌤의 마지막 프로젝트</span></div>
+    <h1 class="in" style="--d:.15s">10-3 인스타<br><span class="g">심폐소생술.</span></h1>
+    <p class="sub in" style="--d:.35s">잠들어 있는 우리 반 SNS를 <span class="pk">다시 살린다</span></p>
+    <div class="who">미디어 환경부 · 업로드 담당 강지완</div>
+    <div class="hint">→ 다음 · F 전체화면 · L 좋아요 · N 대본</div>
+  </section>
+
+  <!-- 2 분석 -->
+  <section class="slide" data-note="먼저 우리 반 인스타 상태를 분석해봤습니다. 사진은 다들 갤러리에 엄청 많은데, 정작 올라간 건 거의 없어요. 비번 아는 사람도 거의 없고요. 출처는 제 체감입니다.">
+    <div class="loader"><div class="lbox">
+      <p class="l1">🔍 10-3 인스타 계정 분석 중...</p>
+      <div class="lbar"><div></div></div>
+      <p class="l2">⚠️ 오류: 최근 게시물을 찾을 수 없음</p>
+    </div></div>
+    <h2 class="in" style="--d:2.3s">현재 10-3 SNS 상태 <small>정밀 분석 결과</small></h2>
+    <div class="bar in" style="--d:2.5s"><span class="lbl">갤러리에서 잠든 사진</span><div class="track"><div class="fill" style="--w:94%"></div></div><b>94%</b></div>
+    <div class="bar in" style="--d:2.6s"><span class="lbl">관리자 누군지 모름</span><div class="track"><div class="fill" style="--w:81%"></div></div><b>81%</b></div>
+    <div class="bar in" style="--d:2.7s"><span class="lbl">계정 있는 거 모름</span><div class="track"><div class="fill" style="--w:40%"></div></div><b>40%</b></div>
+    <div class="bar in" style="--d:2.8s"><span class="lbl red">비번 아는 사람</span><div class="track"><div class="fill r" style="--w:2%"></div></div><b class="red">≈0</b></div>
+    <div class="bar in" style="--d:2.9s"><span class="lbl red">실제로 올라간 사진</span><div class="track"><div class="fill r" style="--w:1%"></div></div><b class="red">1%</b></div>
+    <p class="tiny in" style="--d:3.2s;margin-top:24px">* 출처: 내 체감 (2026). 신뢰도 낮음. 근데 다들 공감하잖아</p>
+  </section>
+
+  <!-- 3 증거 -->
+  <section class="slide" data-note="실제 증거입니다. 업로드 담당이 되고 제일 먼저 한 일이 같은 부서 정인이한테 비번 물어보기였어요. 새벽 12시 26분에요. 결과는... 아직 아무도 몰라요.">
+    <h2 class="in">증거 자료 🔍 <small>실제 DM 재현</small></h2>
+    <div class="ev">
+      <div class="phone in" style="--d:.2s">
+        <div class="top"><span class="back">‹</span><div class="pp">👤</div><b>김정인 ›</b></div>
+        <div class="prof"><div class="pp">👤</div><b>김정인</b><span>Instagram에서 서로 팔로우합니다</span></div>
+        <div class="time">오전 12:26</div>
+        <div class="bub b1">우리반 인스타</div>
+        <div class="bub b2">비번좀</div>
+        <div class="inp"><i>📷</i>메시지 보내기...</div>
+      </div>
+      <div class="evtext">
+        <ul>
+          <li class="in" style="--d:.6s"><span>시간</span>새벽 <span class="or" style="font-size:42px;margin:0;color:var(--orange)">12시 26분</span></li>
+          <li class="in" style="--d:.8s"><span>업무</span>업로드 담당 첫 업무 = <span class="pk" style="font-size:42px;margin:0;color:var(--pink)">비번 찾기</span></li>
+          <li class="in" style="--d:1s"><span>결과</span>아무도 모름</li>
+        </ul>
+        <div class="stamp">로그인 실패</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 원인 -->
+  <section class="slide" data-note="왜 이렇게 됐는지 보면 원인은 세 가지예요. 비번이 공유가 안 됐고, 맡은 사람이 없었고, 사진이 한 곳에 안 모였어요.">
+    <h2 class="in">왜 죽었을까? <small>원인 분석</small></h2>
+    <div class="pts">
+      <div class="pt in" style="--d:.1s"><div class="e">🔑</div><h3>비번 실종</h3><p>계정은 있는데<br>로그인할 수 있는 사람이 없음</p></div>
+      <div class="pt in" style="--d:.25s"><div class="e">🙋</div><h3>담당자 없음</h3><p>"누가 올리겠지~"<br>→ 아무도 안 올림</p></div>
+      <div class="pt in" style="--d:.4s"><div class="e">🖼️</div><h3>사진이 흩어짐</h3><p>사진은 30명 폰에 각각<br>한 곳에 모인 적이 없음</p></div>
+    </div>
+  </section>
+
+  <!-- 5 해결 -->
+  <section class="slide" data-note="그래서 이렇게 바꿉니다. 유령 계정을 살아있는 계정으로. 매주 정기적으로 올리고, 행사가 있으면 그날 바로 올릴게요.">
+    <h2 class="in">그래서 이렇게 바꿉니다</h2>
+    <div class="ba">
+      <div class="card in" style="--d:.1s"><div class="big">👻</div><h3 class="gr">유령 계정</h3><p>비번 실종 · 게시물 없음 · 팔로워 방치</p></div>
+      <div class="arrow in" style="--d:.3s"><span class="g">➜</span></div>
+      <div class="card after in" style="--d:.5s"><div class="big">📈</div><h3 class="g">살아있는 계정</h3><p>매주 업데이트되는 10-3 앨범</p></div>
+    </div>
+    <div class="when in" style="--d:.8s">📅 <span class="or">매주 1회 이상</span> 정기 업로드 + <span class="pk">행사 있는 날</span>은 당일 업로드</div>
+  </section>
+
+  <!-- 6 역할 -->
+  <section class="slide" data-note="역할은 이렇게 나눴어요. 다영, 지민, 정인, 준형이가 찍고 챌린지랑 공모전을 찾고, 저는 그걸 모아서 고르고 올리는 걸 맡아요. 반 친구들은 사진 공유만 해주면 되고, 쌤은 출연만 많이 해주시면 됩니다.">
+    <h2 class="in">누가 뭘 하나 👥</h2>
+    <div class="roles">
+      <div class="role in" style="--d:.1s"><div class="e">📷</div><h3>미디어 환경부<small>국다영 · 남지민 · 김정인 · 고준형</small></h3><p>행사·수업 사진 찍기, 교육 챌린지·공모전 찾기</p></div>
+      <div class="role me in" style="--d:.25s"><div class="e">⬆️</div><h3>업로드 담당<small>강지완</small></h3><p>사진 모으기 → 고르기 → 편집 → 업로드, 계정 관리</p></div>
+      <div class="role in" style="--d:.4s"><div class="e">🙌</div><h3>10-3 전원</h3><p>찍은 사진 공유 앨범에 던지기, 좋아요 누르기</p></div>
+      <div class="role in" style="--d:.55s"><div class="e">👨‍🏫</div><h3>현수쌤</h3><p>출연 많이 해주세요 (제일 중요)</p></div>
+    </div>
+  </section>
+
+  <!-- 7 루틴 -->
+  <section class="slide" data-note="사진 한 장이 올라가는 과정이에요. 찍고, 공유 앨범에 모으고, 나온 사람한테 OK 받고, 편집해서 올립니다.">
+    <h2 class="in">사진 한 장이 올라가기까지</h2>
+    <div class="qmap">
+      <div class="qline"></div>
+      <div class="qn now in" style="--d:.2s"><span class="here">여기부터 시작</span><div class="c">📸</div><p>찍는다<small>누구든, 언제든</small></p></div>
+      <div class="qn in" style="--d:.4s"><div class="c">📂</div><p>공유 앨범<small>한 곳에 모으기</small></p></div>
+      <div class="qn in" style="--d:.6s"><div class="c">🙆</div><p>동의 체크<small>나온 사람 OK?</small></p></div>
+      <div class="qn in" style="--d:.8s"><div class="c">✂️</div><p>편집<small>보정·자막·순서</small></p></div>
+      <div class="qn goal in" style="--d:1s"><div class="c"><span>⬆️</span></div><p>업로드</p></div>
+    </div>
+    <p class="qfoot in" style="--d:1.3s">여러분은 <span class="pk">찍어서 던지기만</span> 하면 됨. 나머지는 내가 함</p>
+  </section>
+
+  <!-- 8 콘텐츠 -->
+  <section class="slide" data-note="뭘 올릴지도 정해놨어요. 학습성장부 야간 자율 미트, 자기주도 학습부 점심 자습실, 저희 부서 챌린지랑 공모전, 학교 행사, 수업 비하인드, 그리고 현수쌤과의 마지막 순간들이요.">
+    <h2 class="in">뭘 올리냐면 <small>다른 부서 활동도 다 기록함</small></h2>
+    <div class="feed">
+      <div class="post in" style="--d:.1s"><div class="e">🌙</div><div><h3>야간 자율 미트</h3><p>학습성장부 · 시험 전 저녁 공부 인증</p><div class="lk">♥ 기대 중</div></div></div>
+      <div class="post in" style="--d:.2s"><div class="e">🤫</div><div><h3>점심 자습실</h3><p>자기주도 학습부 · 조용한 교실 인증</p><div class="lk">♥ 기대 중</div></div></div>
+      <div class="post in" style="--d:.3s"><div class="e">🏆</div><div><h3>챌린지·공모전</h3><p>미디어 환경부 · 교육 챌린지 참여기</p><div class="lk">♥ 기대 중</div></div></div>
+      <div class="post in" style="--d:.4s"><div class="e">🎉</div><div><h3>학교 행사</h3><p>체육대회·축제 등 그날 바로 업로드</p><div class="lk">♥ 기대 중</div></div></div>
+      <div class="post in" style="--d:.5s"><div class="e">📚</div><div><h3>수업 비하인드</h3><p>교실에서 생긴 웃긴 순간들</p><div class="lk">♥ 기대 중</div></div></div>
+      <div class="post boss in" style="--d:.6s"><div class="e">👨‍🏫</div><div><h3>현수쌤과 마지막</h3><p>남은 시간 전부 기록</p><div class="lk">♥ 무조건 1등</div></div></div>
+    </div>
+  </section>
+
+  <!-- 9 헌법 -->
+  <section class="slide" data-note="업로드에도 규칙이 있어요. 제일 중요한 건 1조, 얼굴 나오는 사진은 본인 허락 받고 올린다는 거예요. 그리고 이번엔 비번 꼭 기록해둡니다.">
+    <h2 class="in">10-3 업로드 헌법 📜 <small>위반 시 게시물 삭제</small></h2>
+    <ul class="law">
+      <li class="in" style="--d:.1s"><b class="g">제1조</b>얼굴 나온 사진은 본인 OK 받고 올린다 <i>(흑역사 보호법)</i></li>
+      <li class="in" style="--d:.2s"><b class="g">제2조</b>최소 주 1회 업로드한다 <i>(잠수 금지)</i></li>
+      <li class="in" style="--d:.3s"><b class="g">제3조</b>사진은 반 공유 앨범 한 곳에 모은다</li>
+      <li class="in" style="--d:.4s"><b class="g">제4조</b>비번은 업로드 담당 + 선생님이 관리한다 <i>(이번엔 진짜 적어둠)</i></li>
+      <li class="in" style="--d:.5s"><b class="g">제5조</b>저격·악플 금지. 좋아요는 무제한 허용</li>
+    </ul>
+  </section>
+
+  <!-- 10 시뮬레이터 -->
+  <section class="slide" data-note="직접 보여드릴게요. 지금 우리 계정은 이렇게 텅 비어 있는데, 업로드 버튼을 누를 때마다 피드가 채워집니다. (버튼 몇 번 누르기)">
+    <h2 class="in">업로드 시뮬레이션 <small>버튼 눌러보세요</small></h2>
+    <div class="sim">
+      <div class="ig in" style="--d:.1s">
+        <div class="hd">
+          <div class="ring" id="ring"><span>10-3</span></div>
+          <div class="st">
+            <div><b id="cPost">0</b><span>게시물</span></div>
+            <div><b id="cFol">31</b><span>팔로워</span></div>
+            <div><b id="cLike">0</b><span>좋아요</span></div>
+          </div>
+        </div>
+        <div class="nm">10학년 3반 📸 <span class="gr">현수쌤과 함께한 기록</span></div>
+        <div class="grid" id="grid"><div class="empty" id="empty"><span>📷</span>게시물 없음</div></div>
+      </div>
+      <div class="simside">
+        <p class="in" style="--d:.3s">지금 상태 = <span class="gr">텅 빔</span></p>
+        <p class="in" style="--d:.4s">업로드 담당 투입 후 = <span class="g">?</span></p>
+        <div class="in" style="--d:.5s">
+          <button class="btn" id="upBtn" type="button">⬆️ 업로드</button>
+          <button class="btn ghost" id="resetBtn" type="button">초기화</button>
+        </div>
+        <div class="simmsg" id="simMsg"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 QnA -->
+  <section class="slide" data-note="나올 것 같은 질문 미리 답해볼게요.">
+    <h2 class="in">예상 질문 🙋</h2>
+    <div class="qa">
+      <div class="q in" style="--d:.1s"><div class="qq">내 얼굴 올라가는 거 싫은데?</div><div class="aa">말만 해. 바로 빼거나 스티커로 가림</div></div>
+      <div class="q in" style="--d:.2s"><div class="qq">비번 또 잃어버리면?</div><div class="aa">쌤이랑 같이 적어둠. 이번엔 진짜</div></div>
+      <div class="q in" style="--d:.3s"><div class="qq">사진 어디로 보내?</div><div class="aa">반 공유 앨범에 그냥 던져. 고르는 건 내가 함</div></div>
+      <div class="q in" style="--d:.4s"><div class="qq">나 사진 못 찍는데?</div><div class="aa">괜찮아. 출연만 해도 1인분 함</div></div>
+    </div>
+  </section>
+
+  <!-- 12 기대효과 -->
+  <section class="slide" data-note="이렇게 하면 우리 반 추억이 남고, 다른 부서 활동도 홍보되고, 무엇보다 현수쌤이 감동하실 거예요.">
+    <h2 class="in">기대 효과 📈</h2>
+    <ul class="fx">
+      <li class="in" style="--d:.1s"><span class="up">▲</span>10-3 추억 아카이브 <span class="note">졸업해도 남음</span></li>
+      <li class="in" style="--d:.2s"><span class="up">▲</span>다른 부서 활동 홍보 <span class="note">야자·점심 자습 인증</span></li>
+      <li class="in" style="--d:.3s"><span class="up">▲</span>반 분위기 <span class="note">좋아요 받으면 기분 좋음</span></li>
+      <li class="in" style="--d:.4s"><span class="up">▲</span>공모전·챌린지 참여 기록 <span class="note">수상하면 바로 자랑</span></li>
+      <li class="in" style="--d:.5s"><span class="up">▲▲▲</span>현수쌤 감동 <span class="note">← 최종 목표</span></li>
+    </ul>
+  </section>
+
+  <!-- 13 엔딩 -->
+  <section class="slide s-end" data-note="마지막으로 부탁 두 개만 할게요. 사진 찍으면 공유 앨범에 던져주고, 우리 반 계정 팔로우해주세요. 감사합니다!">
+    <div class="big in"><span class="g">팔로우</span> <span class="wob">🙏</span></div>
+    <p class="in" style="--d:.3s">사진 찍으면 <span class="pk">공유 앨범</span>에 던져주고, 우리 반 계정 <span class="or">팔로우</span> 해주세요</p>
+    <p class="tiny in" style="--d:.5s">미디어 환경부 · 업로드 담당 강지완 · 비번은 이제 제가 압니다</p>
+  </section>
+
+  <div id="note"></div>
+  <div id="num"></div>
+  <div id="fsHint">← → 이동 · F 전체화면 · L 좋아요 · N 대본</div>
+</div>
+
+<script>
+(function(){
+  const stage=document.getElementById('stage');
+  const slides=[...document.querySelectorAll('.slide')];
+  const story=document.getElementById('story');
+  const note=document.getElementById('note');
+  const num=document.getElementById('num');
+  let cur=0;
+
+  slides.forEach(()=>{const i=document.createElement('i');i.appendChild(document.createElement('b'));story.appendChild(i);});
+  const segs=[...story.children];
+
+  function fit(){
+    const s=Math.min(window.innerWidth/1600,window.innerHeight/900);
+    stage.style.transform='translate(-50%,-50%) scale('+s+')';
+  }
+  window.addEventListener('resize',fit);fit();
+
+  function go(n){
+    n=Math.max(0,Math.min(slides.length-1,n));
+    slides.forEach((s,i)=>{s.classList.toggle('active',i===n);s.classList.toggle('prev',i<n);});
+    segs.forEach((g,i)=>{g.className=i<n?'seen':(i===n?'cur':'');});
+    cur=n;
+    num.textContent=(n+1)+' / '+slides.length;
+    note.textContent=slides[n].dataset.note||'';
+    try{location.hash='s'+(n+1)}catch(e){}
+  }
+
+  function hearts(count){
+    const em=['❤️','💖','🧡','💗','🔥','📸'];
+    for(let k=0;k<count;k++){
+      const h=document.createElement('div');
+      h.className='heart';
+      h.textContent=em[Math.floor(Math.random()*em.length)];
+      h.style.left=(200+Math.random()*1200)+'px';
+      h.style.top=(650+Math.random()*200)+'px';
+      h.style.setProperty('--dx',(Math.random()*200-100)+'px');
+      h.style.setProperty('--rot',(Math.random()*60-30)+'deg');
+      h.style.animationDuration=(1.6+Math.random()*1.4)+'s';
+      h.style.animationDelay=(Math.random()*.6)+'s';
+      stage.appendChild(h);
+      setTimeout(()=>h.remove(),3800);
+    }
+  }
+
+  // 업로드 시뮬레이터
+  const grid=document.getElementById('grid'),empty=document.getElementById('empty');
+  const cPost=document.getElementById('cPost'),cFol=document.getElementById('cFol'),cLike=document.getElementById('cLike');
+  const ring=document.getElementById('ring'),simMsg=document.getElementById('simMsg');
+  const items=[['🌙','#2b2350'],['🤫','#1f3a35'],['🏆','#4a3512'],['🎉','#4a1f3a'],['📚','#1e2e4a'],['👨‍🏫','#4a2a1a'],['🍱','#3a2a1e'],['⚽','#1e3a24'],['🎂','#4a1f2a']];
+  const msgs=['첫 게시물! 계정이 숨 쉬기 시작함','좋아요가 들어오는 중...','팔로워 늘어나는 중 📈','다른 반이 염탐하기 시작함','이제 좀 계정 같다','현수쌤 좋아요 누르심 (상상)','피드 꽉 참. 심폐소생술 성공 ✅'];
+  let posts=0,fol=31,likes=0;
+  function upload(){
+    if(posts>=9){simMsg.textContent='피드 꽉 참. 심폐소생술 성공 ✅';hearts(14);return;}
+    const [e,c]=items[posts];
+    const d=document.createElement('div');d.className='cell';d.textContent=e;d.style.background=c;
+    grid.appendChild(d);empty.hidden=true;
+    posts++;fol+=Math.floor(3+Math.random()*6);likes+=Math.floor(18+Math.random()*25);
+    cPost.textContent=posts;cFol.textContent=fol;cLike.textContent=likes;
+    ring.classList.add('live');
+    simMsg.textContent=msgs[Math.min(posts-1,msgs.length-1)];
+    hearts(6);
+  }
+  function reset(){
+    grid.querySelectorAll('.cell').forEach(c=>c.remove());empty.hidden=false;
+    posts=0;fol=31;likes=0;cPost.textContent=0;cFol.textContent=31;cLike.textContent=0;
+    ring.classList.remove('live');simMsg.textContent='';
+  }
+  document.getElementById('upBtn').addEventListener('click',e=>{e.stopPropagation();upload();});
+  document.getElementById('resetBtn').addEventListener('click',e=>{e.stopPropagation();reset();});
+
+  function fullscreen(){
+    const el=document.documentElement;
+    try{
+      if(document.fullscreenElement){document.exitFullscreen().catch(()=>{});}
+      else if(el.requestFullscreen){el.requestFullscreen().catch(()=>{});}
+    }catch(e){}
+  }
+
+  document.addEventListener('keydown',e=>{
+    const k=e.key;
+    if(k==='ArrowRight'||k===' '||k==='PageDown'||k==='Enter'){e.preventDefault();go(cur+1);}
+    else if(k==='ArrowLeft'||k==='PageUp'||k==='Backspace'){e.preventDefault();go(cur-1);}
+    else if(k==='Home')go(0);
+    else if(k==='End')go(slides.length-1);
+    else if(k==='f'||k==='F'||k==='ㄹ')fullscreen();
+    else if(k==='n'||k==='N'||k==='ㅜ')note.classList.toggle('on');
+    else if(k==='l'||k==='L'||k==='ㅣ')hearts(18);
+    else if(k==='u'||k==='U'||k==='ㅕ'){if(cur===9)upload();}
+  });
+  // 화면 탭: 오른쪽 = 다음, 왼쪽 = 이전 (인스타 스토리처럼)
+  stage.addEventListener('click',e=>{
+    if(e.target.closest('button'))return;
+    const r=stage.getBoundingClientRect();
+    if(e.clientX-r.left<r.width*0.3)go(cur-1);else go(cur+1);
+  });
+
+  const m=/^#s(\d+)$/.exec(location.hash||'');
+  go(m?parseInt(m[1],10)-1:0);
+})();
+</script>
