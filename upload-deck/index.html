@@ -183,6 +183,8 @@
   .ig .nm{font-size:26px;margin:16px 0 18px}
   .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;height:310px;align-content:start;overflow:hidden;position:relative}
   .grid .cell{height:97px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:58px;animation:pop .35s cubic-bezier(.2,1.6,.4,1)}
+  .grid .reel{position:relative;animation:none}
+  .grid .reel::after{content:"▶";position:absolute;right:8px;top:6px;font-size:20px;color:var(--w)}
   .grid .empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--gray);font-size:30px;gap:10px}
   .grid .empty span{font-size:80px;opacity:.5}
   .simside{flex:1}
@@ -259,7 +261,7 @@
   </section>
 
   <!-- 3 증거 -->
-  <section class="slide" data-note="실제 증거입니다. 업로드 담당이 되고 제일 먼저 한 일이 정인이한테 비번 물어보기였어요. 새벽 12시 26분에요. 근데 들어가 봐도 올릴 게 없고, 다들 귀찮아서 아무도 안 올린 상태예요.">
+  <section class="slide" data-note="실제 증거입니다. 업로드 담당이 되고 제일 먼저 한 일이 정인이한테 비번 물어보기였어요. 새벽 12시 26분에요. 근데 들어가 보니 릴스 2개 올라간 뒤로 멈춰 있어요. 올릴 게 없다고 생각하고, 다들 귀찮아해서요.">
     <h2 class="in">증거 자료 🔍 <small>실제 DM 재현</small></h2>
     <div class="ev">
       <div class="phone in" style="--d:.2s">
@@ -274,9 +276,9 @@
         <ul>
           <li class="in" style="--d:.6s"><span>시간</span>새벽 <span class="or" style="font-size:42px;margin:0;color:var(--orange)">12시 26분</span></li>
           <li class="in" style="--d:.8s"><span>업무</span>업로드 담당 첫 업무 = <span class="pk" style="font-size:42px;margin:0;color:var(--pink)">계정 들어가기</span></li>
-          <li class="in" style="--d:1s"><span>결과</span>들어가 봐도 올릴 게 없음</li>
+          <li class="in" style="--d:1s"><span>결과</span>릴스 2개 이후로 멈춤</li>
         </ul>
-        <div class="stamp">피드 텅 빔</div>
+        <div class="stamp">릴스 2개가 끝</div>
       </div>
     </div>
   </section>
@@ -353,23 +355,23 @@
   </section>
 
   <!-- 10 시뮬레이터 -->
-  <section class="slide" data-note="직접 보여드릴게요. 지금 우리 계정은 이렇게 텅 비어 있는데, 업로드 버튼을 누를 때마다 피드가 채워집니다. (버튼 몇 번 누르기)">
+  <section class="slide" data-note="직접 보여드릴게요. 지금 우리 계정은 릴스 2개가 전부인데, 업로드 버튼을 누를 때마다 피드가 채워집니다. (버튼 몇 번 누르기)">
     <h2 class="in">업로드 시뮬레이션 <small>버튼 눌러보세요</small></h2>
     <div class="sim">
       <div class="ig in" style="--d:.1s">
         <div class="hd">
           <div class="ring" id="ring"><span>10-3</span></div>
           <div class="st">
-            <div><b id="cPost">0</b><span>게시물</span></div>
+            <div><b id="cPost">2</b><span>게시물</span></div>
             <div><b id="cFol">31</b><span>팔로워</span></div>
-            <div><b id="cLike">0</b><span>좋아요</span></div>
+            <div><b id="cLike">0</b><span>새 좋아요</span></div>
           </div>
         </div>
         <div class="nm">10학년 3반 📸 <span class="gr">현수쌤과 함께한 기록</span></div>
-        <div class="grid" id="grid"><div class="empty" id="empty"><span>📷</span>게시물 없음</div></div>
+        <div class="grid" id="grid"><div class="cell reel" style="background:#2a2238">🎬</div><div class="cell reel" style="background:#2a2238">🎬</div></div>
       </div>
       <div class="simside">
-        <p class="in" style="--d:.3s">지금 상태 = <span class="gr">텅 빔</span></p>
+        <p class="in" style="--d:.3s">지금 상태 = <span class="gr">릴스 2개에서 멈춤</span></p>
         <p class="in" style="--d:.4s">업로드 담당 투입 후 = <span class="g">?</span></p>
         <div class="in" style="--d:.5s">
           <button class="btn" id="upBtn" type="button">⬆️ 업로드</button>
@@ -461,26 +463,26 @@
   }
 
   // 업로드 시뮬레이터
-  const grid=document.getElementById('grid'),empty=document.getElementById('empty');
+  const grid=document.getElementById('grid');
   const cPost=document.getElementById('cPost'),cFol=document.getElementById('cFol'),cLike=document.getElementById('cLike');
   const ring=document.getElementById('ring'),simMsg=document.getElementById('simMsg');
   const items=[['🌙','#2b2350'],['🤫','#1f3a35'],['🏆','#4a3512'],['🎉','#4a1f3a'],['📚','#1e2e4a'],['👨‍🏫','#4a2a1a'],['🍱','#3a2a1e'],['⚽','#1e3a24'],['🎂','#4a1f2a']];
-  const msgs=['첫 게시물! 계정이 숨 쉬기 시작함','좋아요가 들어오는 중...','팔로워 늘어나는 중 📈','다른 반이 염탐하기 시작함','이제 좀 계정 같다','현수쌤 좋아요 누르심 (상상)','피드 꽉 참. 심폐소생술 성공 ✅'];
-  let posts=0,fol=31,likes=0;
+  const msgs=['릴스 2개 이후 첫 새 게시물! 계정이 숨 쉬기 시작함','좋아요가 들어오는 중...','팔로워 늘어나는 중 📈','다른 반이 염탐하기 시작함','이제 좀 계정 같다','현수쌤 좋아요 누르심 (상상)','피드 꽉 참. 심폐소생술 성공 ✅'];
+  const BASE=2;let posts=BASE,fol=31,likes=0;
   function upload(){
     if(posts>=9){simMsg.textContent='피드 꽉 참. 심폐소생술 성공 ✅';hearts(14);return;}
-    const [e,c]=items[posts];
+    const [e,c]=items[posts-BASE];
     const d=document.createElement('div');d.className='cell';d.textContent=e;d.style.background=c;
-    grid.appendChild(d);empty.hidden=true;
+    grid.appendChild(d);
     posts++;fol+=Math.floor(3+Math.random()*6);likes+=Math.floor(18+Math.random()*25);
     cPost.textContent=posts;cFol.textContent=fol;cLike.textContent=likes;
     ring.classList.add('live');
-    simMsg.textContent=msgs[Math.min(posts-1,msgs.length-1)];
+    simMsg.textContent=msgs[Math.min(posts-BASE-1,msgs.length-1)];
     hearts(6);
   }
   function reset(){
-    grid.querySelectorAll('.cell').forEach(c=>c.remove());empty.hidden=false;
-    posts=0;fol=31;likes=0;cPost.textContent=0;cFol.textContent=31;cLike.textContent=0;
+    grid.querySelectorAll('.cell:not(.reel)').forEach(c=>c.remove());
+    posts=BASE;fol=31;likes=0;cPost.textContent=BASE;cFol.textContent=31;cLike.textContent=0;
     ring.classList.remove('live');simMsg.textContent='';
   }
   document.getElementById('upBtn').addEventListener('click',e=>{e.stopPropagation();upload();});
