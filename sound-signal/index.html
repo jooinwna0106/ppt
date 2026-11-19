@@ -128,6 +128,15 @@ h2 .go { color: var(--go); } h2 .stop { color: var(--stop); } h2 .wait { color: 
 .say.pop { animation: say .5s cubic-bezier(.2,1.6,.4,1); }
 @keyframes say { from { transform: scale(.3); opacity: 0; } }
 
+/* ---------- team ---------- */
+.team { display: grid; grid-template-columns: repeat(5, 1fr); gap: 26px; margin-top: 60px; }
+.mem { display: grid; justify-items: center; gap: 10px; padding: 40px 20px 34px; border-radius: 28px; background: rgba(255,255,255,.04); border: 2px solid color-mix(in srgb, var(--c) 55%, transparent); }
+.mem .av { width: 140px; height: 140px; border-radius: 50%; display: grid; place-items: center; background: var(--c); color: #15171c; font-family: var(--display); font-size: 46px; box-shadow: 0 0 50px color-mix(in srgb, var(--c) 40%, transparent); margin-bottom: 10px; }
+.slide.active .mem .av { animation: bob 2.4s ease-in-out infinite; animation-delay: calc(var(--d) * 1ms); }
+@keyframes bob { 50% { transform: translateY(-12px); } }
+.mem b { font-family: var(--display); font-weight: 400; font-size: 44px; }
+.mem small { font-size: 20px; color: var(--muted); }
+
 /* ---------- 2 interest ---------- */
 .cats { display: flex; gap: 18px; margin: 40px 0 50px; flex-wrap: wrap; }
 .cat { display: flex; align-items: center; gap: 12px; font-size: 30px; font-weight: 700; padding: 16px 26px; border-radius: 18px; border: 2px solid var(--line); color: var(--muted); background: rgba(255,255,255,.03); transition: all .5s; }
@@ -341,7 +350,7 @@ h2 .go { color: var(--go); } h2 .stop { color: var(--stop); } h2 .wait { color: 
           <p class="eyebrow a" style="--d:0">창업가 정신으로 관심 분야 문제 해결하기</p>
           <h1 aria-label="소리로 건너는 길"><span class="w" style="--i:0">소리로</span><br><span class="w g" style="--i:1">건너는</span> <span class="w" style="--i:2">길</span></h1>
           <p class="sub a" style="--d:900">베트남 시각장애인을 위한 <b>소리 신호등(음향신호기)</b></p>
-          <div class="chips a" style="--d:1100"><span class="chip">관심 분야 <b>교통</b></span><span class="chip">KIS 모둠 발표</span><span class="chip">정책 제안</span></div>
+          <div class="chips a" style="--d:1100"><span class="chip">관심 분야 <b>교통</b></span><span class="chip">모둠 <b>강지완과 친구들</b></span><span class="chip">정책 제안</span></div>
         </div>
         <div class="cover-light a zoom" style="--d:600">
           <div class="tl" id="coverTl" data-s="stop">
@@ -352,6 +361,20 @@ h2 .go { color: var(--go); } h2 .stop { color: var(--stop); } h2 .wait { color: 
           <div class="waves"><i></i><i></i><i></i></div>
           <div class="say" id="coverSay">빨간불입니다. 기다려 주세요.</div>
         </div>
+      </div>
+    </section>
+
+    <!-- TEAM -->
+    <section class="slide" data-name="team" aria-label="모둠 소개">
+      <p class="eyebrow a" style="--d:0">우리 모둠을 소개합니다</p>
+      <h2 class="a" style="--d:100"><span class="go">강지완과 친구들</span></h2>
+      <p class="lead a" style="--d:200">KIS(호치민한국국제학교) · 관심 분야 <b>교통</b></p>
+      <div class="team">
+        <div class="mem a tilt" style="--d:400; --c: var(--go)"><span class="av">지완</span><b>강지완</b><small>제안자</small></div>
+        <div class="mem a tilt" style="--d:550; --c: var(--wait)"><span class="av">대연</span><b>김대연</b><small>모둠원</small></div>
+        <div class="mem a tilt" style="--d:700; --c: var(--stop)"><span class="av">유나</span><b>박유나</b><small>모둠원</small></div>
+        <div class="mem a tilt" style="--d:850; --c: var(--sound)"><span class="av">하율</span><b>명하율</b><small>모둠원</small></div>
+        <div class="mem a tilt" style="--d:1000; --c: #c9a6ff"><span class="av">승규</span><b>이승규</b><small>모둠원</small></div>
       </div>
     </section>
 
@@ -574,7 +597,7 @@ h2 .go { color: var(--go); } h2 .stop { color: var(--stop); } h2 .wait { color: 
     <section class="slide" data-name="proposal" aria-label="정책 제안서 1">
       <p class="eyebrow a" style="--d:0"><span class="step">5</span>정책 제안서</p>
       <div class="form a" style="--d:150">
-        <div class="r two row-anim" style="--d:0"><div class="k">제안자</div><div class="v"><span contenteditable="true" id="who" spellcheck="false" aria-label="제안자 이름 입력">이름 입력</span></div><div class="k">소속</div><div class="v">KIS (호치민한국국제학교)</div></div>
+        <div class="r two row-anim" style="--d:0"><div class="k">제안자</div><div class="v"><b style="color:#15171c">강지완</b> 외 4명<br><span style="font-size:19px;color:#555">모둠 ‘강지완과 친구들’: 강지완, 김대연, 박유나, 명하율, 이승규</span></div><div class="k">소속</div><div class="v">KIS (호치민한국국제학교)</div></div>
         <div class="r row-anim" style="--d:150"><div class="k">제안 분야</div><div class="v checks"><span><i></i>환경</span><span><i></i>안전</span><span><i></i>생활</span><span><i></i>지역(학교)</span><span class="on"><i>✓</i>교통</span><span><i></i>기타</span></div></div>
         <div class="r row-anim" style="--d:300"><div class="k">제안 주제</div><div class="v"><b>베트남 주요 횡단보도에 시각장애인용 음향신호기(소리 신호등)를 설치하자</b></div></div>
         <div class="r row-anim" style="--d:450"><div class="k">제안 사유</div><div class="v"><ul>
@@ -617,6 +640,7 @@ h2 .go { color: var(--go); } h2 .stop { color: var(--stop); } h2 .wait { color: 
         <div class="tl-row a" style="--d:0"><i></i><i></i><i></i></div>
         <h2 class="a zoom" style="--d:200">감사합니다</h2>
         <p class="lead a" style="--d:500">모두가 <b>소리로</b> 안전하게 건널 수 있는 베트남을 꿈꿉니다.</p>
+        <p class="lead a" style="--d:700"><b style="color:var(--go)">강지완과 친구들</b> · 강지완 · 김대연 · 박유나 · 명하율 · 이승규</p>
       </div>
     </section>
 
@@ -774,16 +798,11 @@ h2 .go { color: var(--go); } h2 .stop { color: var(--stop); } h2 .wait { color: 
   comp.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; saved[b.dataset.c] = +b.dataset.l; store.set('soundSignalComp', saved); paintComp(); beep([900, 650, 420][b.dataset.l], .12); if (+b.dataset.l === 0) { const r = b.getBoundingClientRect(), sr = stage.getBoundingClientRect(), k = W / sr.width; burst((r.left + r.width / 2 - sr.left) * k, (r.top - sr.top) * k, 40); } });
   function growth() { [...comp.children].forEach(c => c.querySelector('.meter i').style.height = '0%'); later(paintComp, 900); }
 
-  /* proposal name */
-  const who = document.getElementById('who');
-  const savedName = store.get('soundSignalName'); if (savedName) who.textContent = savedName;
-  who.addEventListener('focus', () => { if (who.textContent === '이름 입력') who.textContent = ''; });
-  who.addEventListener('blur', () => { const v = who.textContent.trim(); if (!v) who.textContent = '이름 입력'; else store.set('soundSignalName', v); });
-  who.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); who.blur(); } });
 
   /* navigation */
   const enter = {
     interest, data: counters, demo,
+    team: () => later(() => burst(800, 520, 70), 1400),
     growth,
     final: () => later(() => burst(800, 300, 80), 900),
     thanks: () => { later(() => rain(200), 400); }
