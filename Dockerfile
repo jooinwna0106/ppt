@@ -19,6 +19,7 @@ RUN npm ci --omit=dev
 
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/server ./server
+COPY --from=build /app/presentation ./presentation
 
 RUN mkdir -p /tmp/speed-quiz-show/uploads /tmp/speed-quiz-show/data
 

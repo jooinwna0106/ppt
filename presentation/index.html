@@ -1,0 +1,951 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>스피드 퀴즈쇼 발표</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: a fixed 1600×900 game-show stage scaled to fit any screen; one slide at a time, curtain wipe between slides. */
+:root {
+  --stage: #0a0c24;
+  --stage-2: #141846;
+  --ink: #f5f1ff;
+  --muted: #a9a6d6;
+  --line: rgba(190, 185, 255, .16);
+  --buzz: #ff3355;
+  --buzz-deep: #b3112f;
+  --gold: #ffc93c;
+  --cyan: #3ee6ff;
+  --mint: #4dffa6;
+  --violet: #9b7bff;
+  --display: "Black Han Sans", "Noto Sans KR", system-ui, sans-serif;
+  --body: "Noto Sans KR", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--stage);
+  color: var(--ink);
+  font-family: var(--body);
+  overflow: hidden;
+  padding-left: max(0px, env(safe-area-inset-left, 0px));
+  padding-right: max(0px, env(safe-area-inset-right, 0px));
+  -webkit-font-smoothing: antialiased;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+
+#viewport { position: fixed; inset: 0; display: grid; place-items: center; overflow: hidden;
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 0%, rgba(155,123,255,.18), transparent 70%),
+    var(--stage); }
+#stage {
+  position: absolute; left: 50%; top: 50%;
+  width: 1600px; height: 900px;
+  transform-origin: 0 0;
+  overflow: hidden;
+  border-radius: 18px;
+  background:
+    radial-gradient(ellipse 50% 70% at 15% -10%, rgba(62,230,255,.16), transparent 60%),
+    radial-gradient(ellipse 50% 70% at 85% -10%, rgba(255,51,85,.18), transparent 60%),
+    linear-gradient(180deg, var(--stage-2), var(--stage) 70%);
+  box-shadow: 0 30px 120px rgba(0,0,0,.6), 0 0 0 1px var(--line);
+}
+#bg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+#fx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 40; }
+
+/* moving grid floor */
+.floor { position: absolute; left: -50%; right: -50%; bottom: -10px; height: 300px; pointer-events: none;
+  transform: perspective(500px) rotateX(62deg); transform-origin: bottom;
+  background-image:
+    linear-gradient(rgba(155,123,255,.35) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(155,123,255,.35) 2px, transparent 2px);
+  background-size: 80px 80px;
+  mask-image: linear-gradient(to top, #000 10%, transparent 90%);
+  -webkit-mask-image: linear-gradient(to top, #000 10%, transparent 90%);
+  animation: floor 2.4s linear infinite; opacity: .55; }
+@keyframes floor { to { background-position: 0 80px, 0 0; } }
+
+/* sweeping spotlights */
+.spot { position: absolute; top: -200px; width: 380px; height: 1300px; pointer-events: none;
+  background: linear-gradient(180deg, rgba(255,255,255,.14), transparent 75%);
+  clip-path: polygon(45% 0, 55% 0, 100% 100%, 0 100%);
+  filter: blur(6px); transform-origin: 50% 0; mix-blend-mode: screen; }
+.spot.l { left: 160px; animation: sweepL 7s ease-in-out infinite alternate; }
+.spot.r { right: 160px; animation: sweepR 8s ease-in-out infinite alternate; }
+@keyframes sweepL { from { transform: rotate(-24deg); } to { transform: rotate(18deg); } }
+@keyframes sweepR { from { transform: rotate(22deg); } to { transform: rotate(-16deg); } }
+
+/* slides */
+.slide { position: absolute; inset: 0; padding: 90px 110px 110px; visibility: hidden; opacity: 0;
+  transition: opacity .5s ease, visibility 0s linear .5s; z-index: 5; }
+.slide.active { visibility: visible; opacity: 1; transition: opacity .5s ease .25s, visibility 0s; z-index: 6; }
+
+/* entrance animations: elements rest visible on the active slide */
+.a { opacity: 0; transform: translateY(46px); transition: opacity .7s ease, transform .9s cubic-bezier(.16,1.2,.3,1);
+  transition-delay: calc(var(--d, 0) * 1ms + 350ms); }
+.a.left { transform: translateX(-120px); }
+.a.right { transform: translateX(120px); }
+.a.zoom { transform: scale(.4) rotate(-6deg); }
+.a.flip { transform: perspective(900px) rotateY(80deg); }
+.a.drop { transform: translateY(-160px) rotate(8deg); }
+.slide.active .a { opacity: 1; transform: none; }
+
+.eyebrow { font-family: var(--mono); font-size: 22px; letter-spacing: .22em; text-transform: uppercase; color: var(--cyan); margin: 0 0 18px; display: flex; align-items: center; gap: 14px; }
+.eyebrow::before { content: ""; width: 44px; height: 3px; background: currentColor; border-radius: 2px; }
+h2 { font-family: var(--display); font-weight: 400; font-size: 84px; line-height: 1.08; margin: 0 0 22px; text-wrap: balance; letter-spacing: -.01em; }
+h2 em { font-style: normal; color: var(--gold); }
+h2 .red { color: var(--buzz); }
+.lead { font-size: 28px; line-height: 1.6; color: var(--muted); max-width: 980px; margin: 0; }
+.lead b { color: var(--ink); font-weight: 700; }
+.mono { font-family: var(--mono); }
+
+/* curtain wipe */
+.wipe { position: absolute; inset: 0; z-index: 30; pointer-events: none; display: grid; grid-template-columns: repeat(6, 1fr); }
+.wipe i { display: block; height: 100%; transform: scaleY(0); transform-origin: top; }
+.wipe i:nth-child(odd) { background: var(--buzz); }
+.wipe i:nth-child(even) { background: var(--gold); }
+.wipe.go i { animation: wipe .75s cubic-bezier(.7,0,.3,1) both; animation-delay: calc(var(--i) * 40ms); }
+@keyframes wipe { 0% { transform: scaleY(0); transform-origin: top; } 45% { transform: scaleY(1); transform-origin: top; } 55% { transform: scaleY(1); transform-origin: bottom; } 100% { transform: scaleY(0); transform-origin: bottom; } }
+
+/* HUD */
+.hud { position: absolute; left: 0; right: 0; bottom: 0; height: 74px; z-index: 35; display: flex; align-items: center; gap: 18px; padding: 0 40px;
+  font-family: var(--mono); font-size: 18px; color: var(--muted); }
+.hud .brand { font-family: var(--display); color: var(--ink); font-size: 22px; letter-spacing: .04em; }
+.hud .brand b { color: var(--buzz); font-weight: 400; }
+.hud .grow { flex: 1; }
+.hud .count { font-variant-numeric: tabular-nums; min-width: 90px; text-align: right; }
+.hud .count b { color: var(--gold); }
+.navbtn { width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--line); background: rgba(255,255,255,.04); display: grid; place-items: center; transition: background .2s, transform .2s; }
+.navbtn:hover { background: rgba(255,255,255,.12); transform: scale(1.08); }
+.navbtn svg { width: 22px; height: 22px; }
+.progress { position: absolute; left: 0; bottom: 0; height: 5px; z-index: 36; background: linear-gradient(90deg, var(--cyan), var(--violet), var(--buzz), var(--gold)); transition: width .6s cubic-bezier(.6,0,.2,1); box-shadow: 0 0 18px var(--buzz); }
+.dots { display: flex; gap: 8px; }
+.dots button { width: 12px; height: 12px; padding: 0; border-radius: 50%; border: 0; background: rgba(255,255,255,.2); transition: all .3s; }
+.dots button.on { background: var(--gold); width: 34px; border-radius: 6px; }
+
+/* ---------- 1. Title ---------- */
+.title-wrap { display: grid; grid-template-columns: 1fr 520px; align-items: center; height: 100%; gap: 40px; }
+.big-title { font-family: var(--display); font-weight: 400; font-size: 190px; line-height: .95; margin: 10px 0 30px; letter-spacing: -.02em; }
+.big-title .ch { display: inline-block; opacity: 0; transform: translateY(-260px) rotate(-14deg) scale(1.4); }
+.slide.active .big-title .ch { animation: drop .9s cubic-bezier(.2,1.6,.4,1) forwards; animation-delay: calc(var(--i) * 90ms + 400ms); }
+.big-title .line2 { color: var(--gold); text-shadow: 0 0 40px rgba(255,201,60,.45); }
+@keyframes drop { to { opacity: 1; transform: none; } }
+.tagline { font-size: 32px; color: var(--muted); line-height: 1.5; margin: 0 0 36px; }
+.tagline b { color: var(--ink); }
+.chips { display: flex; gap: 12px; flex-wrap: wrap; }
+.chip { font-family: var(--mono); font-size: 19px; padding: 10px 18px; border-radius: 999px; border: 1px solid var(--line); background: rgba(255,255,255,.05); }
+.buzzer-zone { position: relative; width: 520px; height: 520px; display: grid; place-items: center; }
+.ring { position: absolute; width: 330px; height: 330px; border-radius: 50%; border: 4px solid var(--buzz); opacity: 0; }
+.slide.active .ring { animation: ring 2.4s ease-out infinite; }
+.ring:nth-child(2) { animation-delay: .8s !important; }
+.ring:nth-child(3) { animation-delay: 1.6s !important; }
+@keyframes ring { from { transform: scale(.8); opacity: .9; } to { transform: scale(1.6); opacity: 0; } }
+.buzzer { position: relative; width: 330px; height: 330px; border: 0; border-radius: 50%; padding: 0; background: none; }
+.buzzer .base { position: absolute; inset: 40px -10px -40px; border-radius: 50%; background: radial-gradient(circle at 50% 30%, #3a3f6b, #12142e 70%); box-shadow: 0 30px 60px rgba(0,0,0,.6); }
+.buzzer .cap { position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle at 38% 30%, #ff8fa2 0, var(--buzz) 32%, var(--buzz-deep) 75%);
+  box-shadow: inset 0 -22px 40px rgba(0,0,0,.35), 0 26px 0 #7d0a20, 0 40px 60px rgba(255,51,85,.45);
+  display: grid; place-items: center; font-family: var(--display); font-size: 64px; color: #fff; text-shadow: 0 4px 0 rgba(0,0,0,.25);
+  transition: transform .12s, box-shadow .12s; }
+.buzzer:active .cap, .buzzer.hit .cap { transform: translateY(20px); box-shadow: inset 0 -12px 30px rgba(0,0,0,.4), 0 6px 0 #7d0a20, 0 20px 40px rgba(255,51,85,.7); }
+.press-hint { position: absolute; bottom: 4px; font-family: var(--mono); font-size: 18px; color: var(--muted); letter-spacing: .12em; animation: blink 1.4s steps(2) infinite; }
+@keyframes blink { 50% { opacity: .2; } }
+
+/* ---------- 2. Problem ---------- */
+.cards3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 34px; margin-top: 56px; }
+.pcard { position: relative; padding: 40px 36px 44px; border-radius: 28px; background: rgba(255,255,255,.045); border: 1px solid var(--line); overflow: hidden; }
+.pcard .ic { width: 96px; height: 96px; border-radius: 24px; display: grid; place-items: center; margin-bottom: 28px; background: rgba(255,51,85,.14); color: var(--buzz); }
+.pcard .ic svg { width: 54px; height: 54px; }
+.pcard:nth-child(2) .ic { background: rgba(255,201,60,.14); color: var(--gold); }
+.pcard:nth-child(3) .ic { background: rgba(62,230,255,.14); color: var(--cyan); }
+.slide.active .pcard .ic { animation: wobble 2.6s ease-in-out infinite; animation-delay: calc(var(--d) * 1ms + 1200ms); }
+@keyframes wobble { 0%, 70%, 100% { transform: none; } 76% { transform: rotate(-10deg) scale(1.08); } 84% { transform: rotate(8deg) scale(1.08); } 92% { transform: rotate(-4deg); } }
+.pcard h3 { font-family: var(--display); font-weight: 400; font-size: 44px; margin: 0 0 14px; }
+.pcard p { font-size: 24px; color: var(--muted); line-height: 1.6; margin: 0; }
+.qmark { position: absolute; right: -10px; bottom: -60px; font-family: var(--display); font-size: 260px; color: rgba(255,255,255,.04); }
+
+/* ---------- 3. Keyboard idea ---------- */
+.idea { display: grid; grid-template-columns: 600px 1fr; gap: 60px; align-items: center; margin-top: 10px; }
+.kb { display: grid; gap: 12px; padding: 30px 26px; border-radius: 30px; background: linear-gradient(180deg, #1d2150, #12153a); border: 1px solid var(--line); box-shadow: 0 30px 80px rgba(0,0,0,.45); }
+.kb .row { display: flex; gap: 8px; }
+.kb .row:nth-child(2) { padding-left: 20px; }
+.kb .row:nth-child(3) { padding-left: 50px; }
+.key { width: 46px; height: 52px; border-radius: 11px; display: grid; place-items: center; font-family: var(--mono); font-weight: 700; font-size: 20px; flex: none;
+  background: #2a2f63; color: rgba(255,255,255,.35); box-shadow: 0 7px 0 #171a40; transition: transform .1s, box-shadow .1s, background .2s; position: relative; }
+.key.p { color: #0a0c24; background: var(--c); box-shadow: 0 7px 0 color-mix(in srgb, var(--c) 45%, #000), 0 0 26px color-mix(in srgb, var(--c) 50%, transparent); }
+.key.press { transform: translateY(7px); box-shadow: 0 0 0 color-mix(in srgb, var(--c) 45%, #000), 0 0 50px var(--c); }
+.key .pop { position: absolute; top: -46px; font-family: var(--display); font-size: 26px; color: var(--c); white-space: nowrap; opacity: 0; }
+.key.press .pop { animation: pop .7s ease-out; }
+@keyframes pop { from { opacity: 1; transform: translateY(10px) scale(.8); } to { opacity: 0; transform: translateY(-30px) scale(1.2); } }
+.idea-big { font-family: var(--display); font-size: 120px; line-height: 1; margin: 0 0 24px; }
+.idea-big span { color: var(--buzz); }
+.legend { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 36px; }
+.legend div { display: flex; align-items: center; gap: 10px; font-size: 21px; color: var(--muted); }
+.legend b { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; background: var(--c); color: #0a0c24; font-family: var(--mono); font-size: 20px; }
+
+/* ---------- 4. Architecture ---------- */
+.arch { position: relative; margin-top: 30px; height: 560px; }
+.arch svg.wires { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.node { position: absolute; width: 330px; padding: 30px; border-radius: 28px; background: rgba(20,24,70,.9); border: 2px solid var(--c); box-shadow: 0 0 50px color-mix(in srgb, var(--c) 30%, transparent); text-align: center; }
+.node .dev { width: 120px; height: 90px; margin: 0 auto 18px; display: grid; place-items: center; color: var(--c); }
+.node .dev svg { width: 120px; height: 90px; }
+.node h4 { font-family: var(--display); font-weight: 400; font-size: 40px; margin: 0 0 6px; color: var(--c); }
+.node p { margin: 0; font-size: 20px; color: var(--muted); line-height: 1.5; }
+.node.host { left: 0; top: 120px; --c: var(--cyan); }
+.node.server { left: 575px; top: 60px; --c: var(--gold); width: 330px; }
+.node.viewer { right: 0; top: 120px; --c: var(--buzz); }
+.node.server .pulse { position: absolute; inset: -2px; border-radius: 28px; border: 2px solid var(--gold); }
+.slide.active .node.server .pulse { animation: npulse 1.6s ease-out infinite; }
+@keyframes npulse { from { opacity: .8; transform: scale(1); } to { opacity: 0; transform: scale(1.18); } }
+.evt { position: absolute; font-family: var(--mono); font-size: 18px; padding: 8px 14px; border-radius: 10px; background: rgba(255,255,255,.06); border: 1px solid var(--line); color: var(--ink); white-space: nowrap; }
+.evt b { color: var(--c, var(--cyan)); font-weight: 700; }
+.arch-note { position: absolute; left: 0; right: 0; bottom: 0; text-align: center; font-size: 24px; color: var(--muted); }
+.arch-note b { color: var(--gold); }
+
+/* ---------- 5. Flow timeline ---------- */
+.flow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px 30px; margin-top: 40px; position: relative; }
+.step { display: flex; gap: 20px; align-items: flex-start; padding: 24px 26px; border-radius: 22px; background: rgba(255,255,255,.045); border: 1px solid var(--line); min-height: 132px; position: relative; overflow: hidden; }
+.step .n { flex: none; width: 58px; height: 58px; border-radius: 16px; display: grid; place-items: center; font-family: var(--display); font-size: 32px; background: var(--c, var(--violet)); color: #0a0c24; }
+.step h5 { margin: 2px 0 6px; font-size: 26px; font-weight: 900; }
+.step p { margin: 0; font-size: 19px; color: var(--muted); line-height: 1.5; }
+.step::after { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent); transform: translateX(-100%); }
+.slide.active .step::after { animation: shine 1.2s ease calc(var(--d) * 1ms + 700ms); }
+@keyframes shine { to { transform: translateX(100%); } }
+
+/* ---------- 6. Race ---------- */
+.race-wrap { display: grid; grid-template-columns: 1fr 470px; gap: 50px; margin-top: 30px; }
+.lanes { display: grid; gap: 18px; }
+.lane { display: grid; grid-template-columns: 64px 1fr 130px; align-items: center; gap: 18px; }
+.lane .k { width: 64px; height: 64px; border-radius: 14px; display: grid; place-items: center; font-family: var(--mono); font-weight: 700; font-size: 28px; background: var(--c); color: #0a0c24; box-shadow: 0 6px 0 color-mix(in srgb, var(--c) 45%, #000); }
+.lane .track { height: 64px; border-radius: 14px; background: rgba(255,255,255,.05); border: 1px dashed var(--line); position: relative; overflow: hidden; }
+.lane .bar { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--c) 70%, transparent)); border-right: 4px solid var(--c); display: flex; align-items: center; padding-left: 20px; font-size: 22px; font-weight: 700; white-space: nowrap; }
+.lane .ms { font-family: var(--mono); font-size: 26px; text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+.lane.done .ms { color: var(--ink); }
+.lane .medal { position: absolute; right: 14px; top: 50%; translate: 0 -50%; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-family: var(--display); font-size: 24px; background: var(--gold); color: #0a0c24; transform: scale(0); transition: transform .5s cubic-bezier(.2,1.8,.4,1); }
+.lane.done .medal { transform: scale(1); }
+.server-log { border-radius: 24px; background: #070818; border: 1px solid var(--line); padding: 26px 28px; font-family: var(--mono); font-size: 18px; line-height: 1.85; color: var(--muted); min-height: 420px; }
+.server-log .t { color: var(--mint); }
+.server-log .hd { color: var(--gold); margin-bottom: 10px; display: block; }
+.server-log div { animation: logIn .35s ease both; }
+@keyframes logIn { from { opacity: 0; transform: translateX(-12px); } }
+.pill-btn { margin-top: 26px; padding: 14px 26px; border-radius: 999px; border: 0; background: var(--gold); color: #0a0c24; font-weight: 900; font-size: 22px; box-shadow: 0 6px 0 #a57a10; transition: transform .1s, box-shadow .1s; }
+.pill-btn:active { transform: translateY(5px); box-shadow: 0 1px 0 #a57a10; }
+.pill-btn.ghost { background: rgba(255,255,255,.1); color: var(--ink); box-shadow: 0 6px 0 rgba(0,0,0,.4); }
+
+/* ---------- 7. Judge ---------- */
+.judge { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 30px; margin-top: 50px; }
+.jcard { position: relative; border-radius: 28px; padding: 34px; background: rgba(255,255,255,.045); border: 2px solid var(--line); transition: all .45s cubic-bezier(.2,1.3,.4,1); }
+.jcard .rank { font-family: var(--mono); font-size: 20px; color: var(--muted); }
+.jcard .who { display: flex; align-items: center; gap: 16px; margin: 16px 0 22px; }
+.jcard .who b { width: 64px; height: 64px; border-radius: 16px; display: grid; place-items: center; background: var(--c); color: #0a0c24; font-family: var(--mono); font-size: 28px; }
+.jcard .who span { font-family: var(--display); font-size: 44px; }
+.jcard .score { font-family: var(--mono); font-size: 26px; color: var(--muted); }
+.jcard .score strong { font-size: 44px; color: var(--ink); display: inline-block; font-variant-numeric: tabular-nums; }
+.jcard.turn { border-color: var(--gold); transform: translateY(-18px) scale(1.04); box-shadow: 0 0 70px rgba(255,201,60,.35); background: rgba(255,201,60,.07); }
+.jcard.turn::before { content: "답변권"; position: absolute; top: -20px; right: 26px; padding: 6px 16px; border-radius: 999px; background: var(--gold); color: #0a0c24; font-weight: 900; font-size: 20px; }
+.jcard.wrong { border-color: var(--buzz); animation: shake .5s; opacity: .55; }
+.jcard.right { border-color: var(--mint); box-shadow: 0 0 80px rgba(77,255,166,.4); }
+@keyframes shake { 20%, 60% { translate: -14px 0; } 40%, 80% { translate: 14px 0; } }
+.stamp { position: absolute; left: 50%; top: 50%; translate: -50% -50%; font-family: var(--display); font-size: 70px; padding: 10px 30px; border: 6px solid currentColor; border-radius: 18px; rotate: -12deg; opacity: 0; transform: scale(2.4); pointer-events: none; white-space: nowrap; background: rgba(10,12,36,.85); }
+.stamp.show { animation: stamp .45s cubic-bezier(.2,1.4,.4,1) forwards; }
+.stamp.no { color: var(--buzz); }
+.stamp.ok { color: var(--mint); }
+@keyframes stamp { to { opacity: 1; transform: scale(1); } }
+.judge-cap { margin-top: 50px; display: flex; gap: 24px; align-items: center; font-size: 24px; color: var(--muted); }
+.judge-cap .rule { padding: 12px 20px; border-radius: 14px; background: rgba(255,255,255,.05); border: 1px solid var(--line); }
+.judge-cap .rule b.ok { color: var(--mint); }
+.judge-cap .rule b.no { color: var(--buzz); }
+
+/* ---------- 8. Podium ---------- */
+.podium { display: flex; align-items: flex-end; justify-content: center; gap: 26px; height: 520px; margin-top: 10px; }
+.place { width: 300px; display: flex; flex-direction: column; align-items: center; }
+.place .crown { font-family: var(--display); font-size: 42px; margin-bottom: 8px; opacity: 0; transform: translateY(30px); transition: all .6s cubic-bezier(.2,1.6,.4,1); }
+.place .who { font-family: var(--display); font-size: 40px; margin-bottom: 4px; opacity: 0; transition: opacity .5s; }
+.place .pts { font-family: var(--mono); font-size: 22px; color: var(--muted); margin-bottom: 16px; opacity: 0; transition: opacity .5s; }
+.place .block { width: 100%; height: 0; border-radius: 20px 20px 0 0; display: grid; place-items: start center; padding-top: 24px; font-family: var(--display); font-size: 90px; color: rgba(10,12,36,.6);
+  transition: height 1.1s cubic-bezier(.2,1.2,.3,1); }
+.place.p1 .block { background: linear-gradient(180deg, var(--gold), #c98d00); }
+.place.p2 .block { background: linear-gradient(180deg, #e6e8ff, #8f93c0); }
+.place.p3 .block { background: linear-gradient(180deg, #ffad7a, #b5562a); }
+.slide.active .place.p1 .block { height: 340px; transition-delay: 1.5s; }
+.slide.active .place.p2 .block { height: 250px; transition-delay: 1s; }
+.slide.active .place.p3 .block { height: 180px; transition-delay: .6s; }
+.slide.active .place .crown, .slide.active .place .who, .slide.active .place .pts { opacity: 1; transform: none; }
+.slide.active .place.p3 .crown, .slide.active .place.p3 .who, .slide.active .place.p3 .pts { transition-delay: 1.6s; }
+.slide.active .place.p2 .crown, .slide.active .place.p2 .who, .slide.active .place.p2 .pts { transition-delay: 2s; }
+.slide.active .place.p1 .crown, .slide.active .place.p1 .who, .slide.active .place.p1 .pts { transition-delay: 2.6s; }
+.place.p1 .crown { color: var(--gold); }
+.ceremony-head { text-align: center; }
+.ceremony-head .lead { margin: 0 auto; max-width: 1100px; }
+
+/* ---------- 9. Stack ---------- */
+.stack { display: grid; grid-template-columns: repeat(3, 1fr); gap: 26px; margin-top: 44px; perspective: 1200px; }
+.tech { padding: 30px 32px; border-radius: 24px; background: rgba(255,255,255,.045); border: 1px solid var(--line); position: relative; overflow: hidden; transition: transform .3s; }
+.tech:hover { transform: translateY(-8px) rotateX(6deg); }
+.tech .ver { position: absolute; top: 28px; right: 30px; font-family: var(--mono); font-size: 18px; color: var(--c); padding: 4px 12px; border-radius: 8px; background: color-mix(in srgb, var(--c) 15%, transparent); }
+.tech h4 { font-family: var(--display); font-weight: 400; font-size: 44px; margin: 0 0 10px; color: var(--c); }
+.tech p { margin: 0; font-size: 21px; line-height: 1.55; color: var(--muted); }
+.tech .glow { position: absolute; width: 200px; height: 200px; border-radius: 50%; background: var(--c); filter: blur(80px); opacity: .18; right: -60px; bottom: -80px; }
+
+/* ---------- 10. Reuse ---------- */
+.reuse { display: grid; grid-template-columns: 1fr 620px; gap: 60px; margin-top: 30px; align-items: start; }
+.feat { display: grid; gap: 22px; margin-top: 30px; }
+.feat div { display: flex; gap: 20px; align-items: flex-start; }
+.feat svg { flex: none; width: 46px; height: 46px; color: var(--mint); }
+.feat h5 { margin: 0 0 4px; font-size: 28px; font-weight: 900; }
+.feat p { margin: 0; font-size: 21px; color: var(--muted); line-height: 1.5; }
+.code { border-radius: 24px; background: #070818; border: 1px solid var(--line); overflow: hidden; box-shadow: 0 30px 80px rgba(0,0,0,.5); }
+.code .bar { display: flex; gap: 8px; padding: 16px 20px; border-bottom: 1px solid var(--line); align-items: center; }
+.code .bar i { width: 13px; height: 13px; border-radius: 50%; background: var(--buzz); }
+.code .bar i:nth-child(2) { background: var(--gold); }
+.code .bar i:nth-child(3) { background: var(--mint); }
+.code .bar span { margin-left: 12px; font-family: var(--mono); font-size: 17px; color: var(--muted); }
+.code pre { margin: 0; padding: 24px 28px; font-family: var(--mono); font-size: 20px; line-height: 1.7; color: var(--ink); min-height: 470px; white-space: pre-wrap; }
+.code pre .k { color: var(--cyan); }
+.code pre .s { color: var(--gold); }
+.code pre .n { color: var(--buzz); }
+.caret { display: inline-block; width: 11px; height: 24px; background: var(--mint); vertical-align: -4px; animation: blink 1s steps(2) infinite; }
+
+/* ---------- 11. Next ---------- */
+.next { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 44px; }
+.col h3 { font-family: var(--display); font-weight: 400; font-size: 44px; margin: 0 0 22px; display: flex; align-items: center; gap: 16px; }
+.col h3 .tag { font-family: var(--mono); font-size: 16px; padding: 6px 12px; border-radius: 8px; background: var(--c); color: #0a0c24; }
+.col ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 16px; }
+.col li { padding: 22px 26px; border-radius: 20px; background: rgba(255,255,255,.045); border: 1px solid var(--line); font-size: 23px; line-height: 1.5; color: var(--muted); }
+.col li b { color: var(--ink); display: block; font-size: 26px; margin-bottom: 4px; }
+.col li code { font-family: var(--mono); color: var(--gold); font-size: 20px; }
+
+/* ---------- 12. Live demo ---------- */
+.live { display: grid; grid-template-columns: 1fr 520px; gap: 50px; margin-top: 24px; }
+.live-keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 30px; }
+.lkey { height: 150px; border: 0; border-radius: 26px; background: var(--c); color: #0a0c24; display: grid; place-items: center; align-content: center; gap: 4px;
+  box-shadow: 0 12px 0 color-mix(in srgb, var(--c) 40%, #000); transition: transform .08s, box-shadow .08s, filter .2s; }
+.lkey b { font-family: var(--mono); font-size: 56px; line-height: 1; }
+.lkey span { font-size: 19px; font-weight: 700; }
+.lkey.press, .lkey:active { transform: translateY(12px); box-shadow: 0 0 0 color-mix(in srgb, var(--c) 40%, #000), 0 0 60px var(--c); }
+.lkey.used { filter: grayscale(.85) brightness(.6); }
+.live-status { display: flex; align-items: center; gap: 18px; margin-top: 10px; }
+.lamp { width: 26px; height: 26px; border-radius: 50%; background: #3a3d63; transition: all .3s; }
+.lamp.on { background: var(--mint); box-shadow: 0 0 30px var(--mint); animation: blink 1s steps(2) infinite; }
+.live-status span { font-size: 26px; font-weight: 700; }
+.board { border-radius: 26px; background: #070818; border: 1px solid var(--line); padding: 28px; min-height: 560px; }
+.board h4 { margin: 0 0 18px; font-family: var(--mono); color: var(--gold); font-size: 20px; letter-spacing: .14em; }
+.board ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.board li { display: grid; grid-template-columns: 50px 52px 1fr auto; gap: 14px; align-items: center; padding: 12px 16px; border-radius: 16px; background: rgba(255,255,255,.05); animation: slideIn .45s cubic-bezier(.2,1.5,.4,1) both; }
+.board li .r { font-family: var(--display); font-size: 30px; color: var(--gold); }
+.board li .kk { width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; background: var(--c); color: #0a0c24; font-family: var(--mono); font-weight: 700; font-size: 22px; }
+.board li .nm { font-size: 24px; font-weight: 700; }
+.board li .t { font-family: var(--mono); font-size: 22px; color: var(--mint); font-variant-numeric: tabular-nums; }
+.board li:first-child { background: rgba(255,201,60,.14); outline: 2px solid var(--gold); }
+.board .empty { color: var(--muted); font-size: 22px; line-height: 1.6; padding: 30px 6px; }
+@keyframes slideIn { from { opacity: 0; transform: translateX(60px) scale(.9); } }
+
+/* ---------- 13. End ---------- */
+.end { height: 100%; display: grid; place-items: center; text-align: center; align-content: center; gap: 10px; }
+.thanks { font-family: var(--display); font-size: 210px; line-height: 1; margin: 0; background: linear-gradient(90deg, var(--cyan), var(--violet), var(--buzz), var(--gold), var(--cyan)); background-size: 300% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent; animation: hue 6s linear infinite; }
+@keyframes hue { to { background-position: 300% 0; } }
+.qa { font-family: var(--display); font-size: 60px; color: var(--ink); margin: 0; }
+.qa span { display: inline-block; }
+.slide.active .qa span { animation: bounce 1.6s ease-in-out infinite; animation-delay: calc(var(--i) * 120ms); }
+@keyframes bounce { 0%, 60%, 100% { transform: none; } 30% { transform: translateY(-24px); } }
+
+/* marquee lights around title slide */
+.bulbs { position: absolute; inset: 22px; border-radius: 26px; pointer-events: none; z-index: 2; }
+.bulbs i { position: absolute; width: 12px; height: 12px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 14px var(--gold); animation: bulb 1s steps(2) infinite; }
+.bulbs i:nth-child(even) { animation-delay: .5s; }
+@keyframes bulb { 50% { opacity: .2; box-shadow: none; } }
+
+.help { position: absolute; top: 26px; right: 40px; z-index: 35; font-family: var(--mono); font-size: 16px; color: var(--muted); display: flex; gap: 10px; align-items: center; }
+.help kbd { font-family: var(--mono); border: 1px solid var(--line); border-bottom-width: 3px; border-radius: 6px; padding: 2px 8px; color: var(--ink); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; transition-delay: 0s !important; }
+  .big-title .ch { opacity: 1; transform: none; }
+}
+</style>
+</head>
+<body>
+<div id="viewport">
+  <div id="stage" aria-roledescription="presentation">
+    <canvas id="bg"></canvas>
+    <div class="spot l"></div><div class="spot r"></div>
+    <div class="floor"></div>
+    <div class="help" aria-hidden="true"><kbd>←</kbd><kbd>→</kbd> 이동 · <kbd>F</kbd> 전체화면</div>
+
+    <!-- 1. TITLE -->
+    <section class="slide" data-name="title" aria-label="표지">
+      <div class="bulbs" id="bulbs"></div>
+      <div class="title-wrap">
+        <div>
+          <p class="eyebrow a" style="--d:0">BUZZER v1 · 프로젝트 발표</p>
+          <h1 class="big-title" aria-label="스피드 퀴즈쇼"><span class="line1" data-split>스피드</span><br><span class="line2" data-split>퀴즈쇼</span></h1>
+          <p class="tagline a" style="--d:1100">PPT 슬라이드와 <b>노트북 한 대의 키보드</b>로<br>누구나 여는 실시간 버저 퀴즈</p>
+          <div class="chips a" style="--d:1350">
+            <span class="chip">React 19</span><span class="chip">Socket.io</span><span class="chip">Express</span><span class="chip">최대 8명</span>
+          </div>
+        </div>
+        <div class="buzzer-zone a zoom" style="--d:900">
+          <div class="ring"></div><div class="ring"></div><div class="ring"></div>
+          <button class="buzzer" id="titleBuzzer" aria-label="버저 누르기"><span class="base"></span><span class="cap">BUZZ!</span></button>
+          <span class="press-hint">PRESS ME</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. PROBLEM -->
+    <section class="slide" data-name="problem" aria-label="문제">
+      <p class="eyebrow a" style="--d:0">PROBLEM</p>
+      <h2 class="a" style="--d:120">퀴즈 진행, <em>이런 적</em> 있죠?</h2>
+      <div class="cards3">
+        <div class="pcard a" style="--d:400">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-4 0v5"/><path d="M14 10V4a2 2 0 0 0-4 0v6"/><path d="M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg></div>
+          <h3>누가 먼저 들었지?</h3>
+          <p>손 들기, 소리 지르기로는 순서가 애매해요. 진행자 눈대중 판정은 매번 논란이 됩니다.</p>
+          <span class="qmark">?</span>
+        </div>
+        <div class="pcard a" style="--d:600">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M14.5 9a2.5 2.5 0 0 0-2.5-1.5c-1.5 0-2.5.8-2.5 2s1 1.7 2.5 2 2.5.9 2.5 2-1 2-2.5 2A2.5 2.5 0 0 1 9.5 15"/><path d="M12 6v1.5M12 16.5V18"/></svg></div>
+          <h3>버저 장비는 부담</h3>
+          <p>전용 퀴즈 버저는 비싸고, 인원수만큼 챙겨서 연결하고 충전해야 해요.</p>
+          <span class="qmark">₩</span>
+        </div>
+        <div class="pcard a" style="--d:800">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="13" height="10" rx="2"/><path d="M6 18h5"/><rect x="17" y="8" width="5" height="12" rx="1"/><path d="M15 9l2 1"/></svg></div>
+          <h3>화면이 따로 놀아요</h3>
+          <p>PPT, 점수판, 순서 기록이 각각 다른 곳에 있어서 진행자가 바쁘고 실수가 생겨요.</p>
+          <span class="qmark">!</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. IDEA -->
+    <section class="slide" data-name="idea" aria-label="아이디어">
+      <p class="eyebrow a" style="--d:0">IDEA</p>
+      <div class="idea">
+        <div class="kb a left" style="--d:300" id="kb" aria-label="참가자 키가 표시된 키보드"></div>
+        <div>
+          <p class="idea-big a right" style="--d:200">키보드 1개<br>= 버저 <span>8개</span></p>
+          <p class="lead a" style="--d:500">뷰어 노트북 한 대에 참가자마다 <b>키 하나씩</b>을 배정합니다. 가장 먼저 자기 키를 누른 사람이 답변권을 가져가요. 추가 장비가 필요 없습니다.</p>
+          <div class="legend a" style="--d:750" id="legend"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. ARCHITECTURE -->
+    <section class="slide" data-name="architecture" aria-label="시스템 구조">
+      <p class="eyebrow a" style="--d:0">ARCHITECTURE</p>
+      <h2 class="a" style="--d:120">화면 두 개, <em>상태는 하나</em></h2>
+      <div class="arch">
+        <svg class="wires" viewBox="0 0 1380 560" aria-hidden="true">
+          <defs>
+            <linearGradient id="gw1" x1="0" x2="1"><stop offset="0" stop-color="#3ee6ff"/><stop offset="1" stop-color="#ffc93c"/></linearGradient>
+            <linearGradient id="gw2" x1="0" x2="1"><stop offset="0" stop-color="#ffc93c"/><stop offset="1" stop-color="#ff3355"/></linearGradient>
+          </defs>
+          <path id="w1" d="M330 260 C 440 260, 470 200, 575 200" stroke="url(#gw1)" stroke-width="4" fill="none" stroke-dasharray="10 10"><animate attributeName="stroke-dashoffset" from="40" to="0" dur="1s" repeatCount="indefinite"/></path>
+          <path id="w1b" d="M575 240 C 470 240, 440 300, 330 300" stroke="url(#gw1)" stroke-width="4" fill="none" stroke-dasharray="10 10" opacity=".55"><animate attributeName="stroke-dashoffset" from="40" to="0" dur="1s" repeatCount="indefinite"/></path>
+          <path id="w2" d="M1050 260 C 940 260, 910 200, 805 200" stroke="url(#gw2)" stroke-width="4" fill="none" stroke-dasharray="10 10"><animate attributeName="stroke-dashoffset" from="40" to="0" dur="1s" repeatCount="indefinite"/></path>
+          <path id="w2b" d="M805 240 C 910 240, 940 300, 1050 300" stroke="url(#gw2)" stroke-width="4" fill="none" stroke-dasharray="10 10" opacity=".55"><animate attributeName="stroke-dashoffset" from="40" to="0" dur="1s" repeatCount="indefinite"/></path>
+          <circle r="10" fill="#3ee6ff"><animateMotion dur="1.8s" repeatCount="indefinite"><mpath href="#w1"/></animateMotion></circle>
+          <circle r="10" fill="#ff3355"><animateMotion dur="1.4s" begin=".5s" repeatCount="indefinite"><mpath href="#w2"/></animateMotion></circle>
+          <circle r="8" fill="#ffc93c"><animateMotion dur="1.8s" begin=".9s" repeatCount="indefinite"><mpath href="#w1b"/></animateMotion></circle>
+          <circle r="8" fill="#ffc93c"><animateMotion dur="1.8s" begin=".3s" repeatCount="indefinite"><mpath href="#w2b"/></animateMotion></circle>
+        </svg>
+        <div class="node host a left" style="--d:300">
+          <div class="dev"><svg viewBox="0 0 120 90" fill="none" stroke="currentColor" stroke-width="4"><rect x="20" y="4" width="80" height="82" rx="10"/><circle cx="60" cy="78" r="3" fill="currentColor"/></svg></div>
+          <h4>호스트</h4>
+          <p>아이패드 · 진행자<br>슬라이드, 버저, 판정 조작</p>
+        </div>
+        <div class="node server a zoom" style="--d:600">
+          <span class="pulse"></span>
+          <div class="dev"><svg viewBox="0 0 120 90" fill="none" stroke="currentColor" stroke-width="4"><rect x="20" y="6" width="80" height="22" rx="5"/><rect x="20" y="34" width="80" height="22" rx="5"/><rect x="20" y="62" width="80" height="22" rx="5"/><circle cx="34" cy="17" r="3" fill="currentColor"/><circle cx="34" cy="45" r="3" fill="currentColor"/><circle cx="34" cy="73" r="3" fill="currentColor"/></svg></div>
+          <h4>서버</h4>
+          <p>Node · Express · Socket.io<br>방 상태의 유일한 기준</p>
+        </div>
+        <div class="node viewer a right" style="--d:900">
+          <div class="dev"><svg viewBox="0 0 120 90" fill="none" stroke="currentColor" stroke-width="4"><rect x="16" y="6" width="88" height="58" rx="6"/><path d="M4 76h112l-8 10H12z"/></svg></div>
+          <h4>뷰어</h4>
+          <p>노트북 + 프로젝터<br>슬라이드 표시, 키보드 버저</p>
+        </div>
+        <span class="evt a" style="--d:1200; left:360px; top:120px; --c: var(--cyan)"><b>goToSlide</b> · <b>setBuzzer</b> · <b>judge</b></span>
+        <span class="evt a" style="--d:1400; right:400px; top:120px; --c: var(--buzz)"><b>buzz</b> { key: "Q" }</span>
+        <span class="evt a" style="--d:1600; left:560px; top:400px; --c: var(--gold)"><b>roomState</b> → 모든 화면에 방송</span>
+        <p class="arch-note a" style="--d:1800">버튼을 누르면 서버가 상태를 바꾸고, <b>같은 방의 모든 화면</b>이 즉시 같은 화면으로 바뀝니다.</p>
+      </div>
+    </section>
+
+    <!-- 5. FLOW -->
+    <section class="slide" data-name="flow" aria-label="진행 흐름">
+      <p class="eyebrow a" style="--d:0">HOW IT RUNS</p>
+      <h2 class="a" style="--d:120">퀴즈 한 판의 <em>진행 순서</em></h2>
+      <div class="flow">
+        <div class="step a" style="--d:300; --c: var(--cyan)"><span class="n">1</span><div><h5>방 만들기</h5><p>호스트가 방을 만들면 방 코드가 생겨요.</p></div></div>
+        <div class="step a" style="--d:400; --c: var(--cyan)"><span class="n">2</span><div><h5>뷰어 접속</h5><p>방 코드 입력 또는 뷰어 링크 복사로 노트북을 연결해요.</p></div></div>
+        <div class="step a" style="--d:500; --c: var(--cyan)"><span class="n">3</span><div><h5>슬라이드 업로드</h5><p>PPT를 PNG/JPG로 내보내 여러 장 올려요.</p></div></div>
+        <div class="step a" style="--d:600; --c: var(--gold)"><span class="n">4</span><div><h5>참가자 설정</h5><p>2~8명, 이름과 키를 정하고 중복 키는 막아요.</p></div></div>
+        <div class="step a" style="--d:700; --c: var(--gold)"><span class="n">5</span><div><h5>버저 활성화</h5><p>문제 슬라이드에서 원하는 순간 버저를 열어요.</p></div></div>
+        <div class="step a" style="--d:800; --c: var(--gold)"><span class="n">6</span><div><h5>키 누르기</h5><p>참가자가 자기 키를 누르면 순위가 기록돼요.</p></div></div>
+        <div class="step a" style="--d:900; --c: var(--buzz)"><span class="n">7</span><div><h5>정답 · 오답 판정</h5><p>정답 +1, 오답 −1 후 다음 순위에게 답변권.</p></div></div>
+        <div class="step a" style="--d:1000; --c: var(--buzz)"><span class="n">8</span><div><h5>퀴즈 종료</h5><p>최종 순위와 시상식 화면이 펼쳐져요.</p></div></div>
+        <div class="step a" style="--d:1100; --c: var(--buzz)"><span class="n">9</span><div><h5>처음으로</h5><p>같은 방, 같은 슬라이드로 점수만 초기화해요.</p></div></div>
+      </div>
+    </section>
+
+    <!-- 6. RACE -->
+    <section class="slide" data-name="fair" aria-label="공정한 순위">
+      <p class="eyebrow a" style="--d:0">FAIR BUZZER</p>
+      <h2 class="a" style="--d:120"><span class="red">ms</span> 단위로 가리는 순서</h2>
+      <div class="race-wrap">
+        <div>
+          <p class="lead a" style="--d:250">서버가 버저를 받은 시각(<b>Date.now()</b>)으로 줄을 세워요. 같은 사람이 여러 번 눌러도 <b>첫 번째만</b> 인정합니다.</p>
+          <div class="lanes a" style="--d:450; margin-top:34px" id="lanes"></div>
+          <button class="pill-btn a" style="--d:600" id="raceAgain">다시 경주하기</button>
+        </div>
+        <div class="server-log a right" style="--d:500" id="serverLog" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <!-- 7. JUDGE -->
+    <section class="slide" data-name="judge" aria-label="판정">
+      <p class="eyebrow a" style="--d:0">JUDGEMENT</p>
+      <h2 class="a" style="--d:120">틀리면 <em>다음 사람</em>에게</h2>
+      <div class="judge" id="judgeCards">
+        <div class="jcard a" style="--d:300; --c: var(--cyan)"><div class="rank">1위 · +0.142s</div><div class="who"><b>Q</b><span>민준</span></div><div class="score">점수 <strong>2</strong></div><div class="stamp no">오답 −1</div></div>
+        <div class="jcard a" style="--d:450; --c: var(--buzz)"><div class="rank">2위 · +0.208s</div><div class="who"><b>P</b><span>서연</span></div><div class="score">점수 <strong>3</strong></div><div class="stamp ok">정답 +1</div></div>
+        <div class="jcard a" style="--d:600; --c: var(--mint)"><div class="rank">3위 · +0.391s</div><div class="who"><b>Z</b><span>지호</span></div><div class="score">점수 <strong>1</strong></div><div class="stamp ok">정답 +1</div></div>
+      </div>
+      <div class="judge-cap a" style="--d:800">
+        <span class="rule"><b class="ok">정답</b> → +1점, 버저 닫힘</span>
+        <span class="rule"><b class="no">오답</b> → −1점, 다음 순위로 답변권 이동</span>
+      </div>
+    </section>
+
+    <!-- 8. CEREMONY -->
+    <section class="slide" data-name="ceremony" aria-label="시상식">
+      <div class="ceremony-head">
+        <p class="eyebrow a" style="--d:0; justify-content:center">AWARDS</p>
+        <h2 class="a" style="--d:120">끝은 언제나 <em>시상식</em></h2>
+        <p class="lead a" style="--d:250">퀴즈 종료를 누르면 호스트와 뷰어 화면에 최종 랭킹과 시상대가 함께 올라옵니다.</p>
+      </div>
+      <div class="podium">
+        <div class="place p2"><div class="crown">2위</div><div class="who">서연</div><div class="pts">7점</div><div class="block">2</div></div>
+        <div class="place p1"><div class="crown">1위</div><div class="who">민준</div><div class="pts">9점</div><div class="block">1</div></div>
+        <div class="place p3"><div class="crown">3위</div><div class="who">지호</div><div class="pts">5점</div><div class="block">3</div></div>
+      </div>
+    </section>
+
+    <!-- 9. STACK -->
+    <section class="slide" data-name="stack" aria-label="기술 스택">
+      <p class="eyebrow a" style="--d:0">TECH STACK</p>
+      <h2 class="a" style="--d:120">무엇으로 <em>만들었나</em></h2>
+      <div class="stack">
+        <div class="tech a flip" style="--d:300; --c: var(--cyan)"><span class="ver">19</span><h4>React</h4><p>호스트 대시보드, 뷰어 화면, 시상식 오버레이를 한 앱에서 역할별로 렌더링</p><span class="glow"></span></div>
+        <div class="tech a flip" style="--d:420; --c: var(--violet)"><span class="ver">7</span><h4>Vite</h4><p>빠른 개발 서버와 빌드. 같은 와이파이의 다른 기기에서도 바로 접속</p><span class="glow"></span></div>
+        <div class="tech a flip" style="--d:540; --c: var(--gold)"><span class="ver">4.8</span><h4>Socket.io</h4><p>createRoom, buzz, judge 같은 이벤트로 모든 화면을 실시간 동기화</p><span class="glow"></span></div>
+        <div class="tech a flip" style="--d:660; --c: var(--mint)"><span class="ver">5</span><h4>Express</h4><p>업로드 API, 저장된 방 목록 API, 빌드된 화면 제공, /healthz 체크</p><span class="glow"></span></div>
+        <div class="tech a flip" style="--d:780; --c: var(--buzz)"><span class="ver">2</span><h4>Multer</h4><p>PNG · JPG · WEBP · GIF 슬라이드 이미지를 여러 장 한 번에 업로드</p><span class="glow"></span></div>
+        <div class="tech a flip" style="--d:900; --c: #ff9ad5"><span class="ver">Node 20+</span><h4>Render · Docker</h4><p>계속 켜져 있는 Node 서버가 필요해 Render와 Docker 배포를 지원</p><span class="glow"></span></div>
+      </div>
+    </section>
+
+    <!-- 10. REUSE -->
+    <section class="slide" data-name="reuse" aria-label="행사장 재사용">
+      <p class="eyebrow a" style="--d:0">REUSABLE ROOMS</p>
+      <div class="reuse">
+        <div>
+          <h2 class="a" style="--d:120">행사 당일에도<br><em>끊기지 않게</em></h2>
+          <div class="feat">
+            <div class="a left" style="--d:350"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg><div><h5>방 저장</h5><p>현재 슬라이드, 참가자, 점수를 서버 파일에 저장해요.</p></div></div>
+            <div class="a left" style="--d:500"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg><div><h5>저장된 방 바로 열기</h5><p>시작 화면 목록에서 호스트 또는 뷰어로 이어서 시작해요.</p></div></div>
+            <div class="a left" style="--d:650"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><div><h5>역할 전환</h5><p>같은 탭에서 호스트 ↔ 뷰어 화면을 버튼 하나로 바꿔요.</p></div></div>
+          </div>
+        </div>
+        <div class="code a right" style="--d:400">
+          <div class="bar"><i></i><i></i><i></i><span>data/rooms.json</span></div>
+          <pre id="typer" aria-label="rooms.json 예시"></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- 11. NEXT -->
+    <section class="slide" data-name="next" aria-label="다음 단계">
+      <p class="eyebrow a" style="--d:0">WHAT'S NEXT</p>
+      <h2 class="a" style="--d:120">지금 되는 것, <em>다음에 할 것</em></h2>
+      <div class="next">
+        <div class="col a left" style="--d:300; --c: var(--mint)">
+          <h3>MVP 완료 <span class="tag">DONE</span></h3>
+          <ul>
+            <li><b>실시간 방 동기화</b>방 생성 · 참가, 슬라이드 이동, 버저 상태 공유</li>
+            <li><b>공정한 버저 순위</b>서버 수신 시각 기준 ms 순위와 답변권 이동</li>
+            <li><b>시상식과 재시작</b>최종 랭킹, 시상대, 점수 초기화 후 처음으로</li>
+          </ul>
+        </div>
+        <div class="col a right" style="--d:500; --c: var(--gold)">
+          <h3>다음 단계 <span class="tag">NEXT</span></h3>
+          <ul>
+            <li><b>PPT 파일 자동 변환</b>지금은 이미지로 내보낸 뒤 업로드. <code>.pptx</code>를 바로 올리면 서버가 변환하도록</li>
+            <li><b>영구 저장소</b>무료 호스팅은 재시작하면 업로드가 사라질 수 있어 외부 스토리지 연결</li>
+            <li><b>휴대폰 버저 모드</b>참가자 각자의 휴대폰을 버저로 쓰는 선택지 추가</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 12. LIVE -->
+    <section class="slide" data-name="live" aria-label="직접 해보기">
+      <p class="eyebrow a" style="--d:0">LIVE DEMO</p>
+      <div class="live">
+        <div>
+          <h2 class="a" style="--d:120">지금 <em>직접</em> 눌러보세요</h2>
+          <p class="lead a" style="--d:250">키보드에서 <b>Q · P · Z · M · A · L · S · K</b>를 누르거나 아래 버튼을 탭하세요. 버저가 열린 순간부터 몇 ms 만에 눌렀는지 기록돼요.</p>
+          <div class="live-status a" style="--d:350"><i class="lamp" id="lamp"></i><span id="liveText">버저 준비 중…</span></div>
+          <div class="live-keys a" style="--d:450" id="liveKeys"></div>
+          <button class="pill-btn a" style="--d:600" id="openBuzz">버저 다시 열기</button>
+        </div>
+        <div class="board a right" style="--d:400">
+          <h4>BUZZ RANKING</h4>
+          <ol id="boardList"></ol>
+          <p class="empty" id="boardEmpty">아직 아무도 누르지 않았어요.<br>가장 먼저 누르는 사람이 1위!</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 13. END -->
+    <section class="slide" data-name="thanks" aria-label="감사합니다">
+      <div class="end">
+        <p class="eyebrow a" style="--d:0; justify-content:center">SPEED QUIZ SHOW</p>
+        <h2 class="thanks a zoom" style="--d:200">감사합니다</h2>
+        <p class="qa a" style="--d:600" aria-label="질문 받겠습니다"><span style="--i:0">질</span><span style="--i:1">문</span> <span style="--i:2">받</span><span style="--i:3">겠</span><span style="--i:4">습</span><span style="--i:5">니</span><span style="--i:6">다</span><span style="--i:7">!</span></p>
+      </div>
+    </section>
+
+    <canvas id="fx"></canvas>
+    <div class="wipe" id="wipe" aria-hidden="true"><i style="--i:0"></i><i style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i><i style="--i:5"></i></div>
+
+    <div class="hud">
+      <span class="brand">SPEED <b>QUIZ</b></span>
+      <span class="dots" id="dots"></span>
+      <span class="grow"></span>
+      <button class="navbtn" id="fsBtn" aria-label="전체화면"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+      <button class="navbtn" id="prevBtn" aria-label="이전 슬라이드"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <button class="navbtn" id="nextBtn" aria-label="다음 슬라이드"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M9 5l7 7-7 7"/></svg></button>
+      <span class="count"><b id="cur">1</b> / <span id="tot">13</span></span>
+    </div>
+    <div class="progress" id="progress"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const W = 1600, H = 900;
+  const stage = document.getElementById('stage');
+  const slides = [...document.querySelectorAll('.slide')];
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const PLAYERS = [
+    { k: 'Q', n: '1번', c: '#3ee6ff' }, { k: 'P', n: '2번', c: '#ff3355' },
+    { k: 'Z', n: '3번', c: '#4dffa6' }, { k: 'M', n: '4번', c: '#ffc93c' },
+    { k: 'A', n: '5번', c: '#9b7bff' }, { k: 'L', n: '6번', c: '#ff9ad5' },
+    { k: 'S', n: '7번', c: '#ff9f43' }, { k: 'K', n: '8번', c: '#7bd3ff' }
+  ];
+  const byKey = Object.fromEntries(PLAYERS.map(p => [p.k, p]));
+
+  /* ---------- scale stage ---------- */
+  function fit() {
+    const s = Math.min(innerWidth / W, innerHeight / H) * 0.98;
+    stage.style.transformOrigin = '50% 50%';
+    stage.style.transform = `translate(-50%, -50%) scale(${s})`;
+  }
+  addEventListener('resize', fit); fit();
+
+  /* ---------- split title letters ---------- */
+  let ci = 0;
+  document.querySelectorAll('[data-split]').forEach(el => {
+    const t = el.textContent; el.textContent = '';
+    [...t].forEach(ch => { const s = document.createElement('span'); s.className = 'ch'; s.style.setProperty('--i', ci++); s.textContent = ch; el.appendChild(s); });
+  });
+
+  /* ---------- marquee bulbs ---------- */
+  const bulbs = document.getElementById('bulbs');
+  const bw = W - 44, bh = H - 44;
+  for (let x = 20; x < bw; x += 52) { [0, bh - 12].forEach(y => { const i = document.createElement('i'); i.style.left = x + 'px'; i.style.top = y + 'px'; bulbs.appendChild(i); }); }
+  for (let y = 56; y < bh - 30; y += 52) { [0, bw - 12].forEach(x => { const i = document.createElement('i'); i.style.left = x + 'px'; i.style.top = y + 'px'; bulbs.appendChild(i); }); }
+
+  /* ---------- audio ---------- */
+  let actx = null;
+  function beep(freq = 520, dur = .18, type = 'square', vol = .08) {
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = type; o.frequency.value = freq;
+      g.gain.setValueAtTime(vol, actx.currentTime);
+      g.gain.exponentialRampToValueAtTime(.0001, actx.currentTime + dur);
+      o.connect(g).connect(actx.destination); o.start(); o.stop(actx.currentTime + dur);
+    } catch (e) {}
+  }
+  const buzzSound = () => { beep(220, .35, 'sawtooth', .06); beep(330, .35, 'square', .04); };
+  const dingSound = () => { beep(880, .15, 'sine', .1); setTimeout(() => beep(1320, .3, 'sine', .1), 120); };
+  const failSound = () => { beep(160, .45, 'sawtooth', .07); };
+
+  /* ---------- background particles ---------- */
+  const bg = document.getElementById('bg'), bctx = bg.getContext('2d');
+  bg.width = W; bg.height = H;
+  const stars = Array.from({ length: 90 }, () => ({ x: Math.random() * W, y: Math.random() * H, r: Math.random() * 2.2 + .4, v: Math.random() * .35 + .08, p: Math.random() * 6.28 }));
+  function drawBg(t) {
+    bctx.clearRect(0, 0, W, H);
+    for (const s of stars) {
+      s.y -= s.v; if (s.y < -5) { s.y = H + 5; s.x = Math.random() * W; }
+      const a = .35 + .35 * Math.sin(t / 700 + s.p);
+      bctx.fillStyle = `rgba(220,215,255,${a})`;
+      bctx.beginPath(); bctx.arc(s.x, s.y, s.r, 0, 6.283); bctx.fill();
+    }
+  }
+
+  /* ---------- confetti ---------- */
+  const fx = document.getElementById('fx'), fctx = fx.getContext('2d');
+  fx.width = W; fx.height = H;
+  let parts = [];
+  const COLORS = ['#ff3355', '#ffc93c', '#3ee6ff', '#4dffa6', '#9b7bff', '#ff9ad5'];
+  function burst(x, y, n = 120, spread = 1) {
+    if (reduce) return;
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, sp = (Math.random() * 14 + 4) * spread;
+      parts.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 8, w: Math.random() * 12 + 6, h: Math.random() * 7 + 4, r: Math.random() * 6, vr: Math.random() * .4 - .2, c: COLORS[i % COLORS.length], life: 1 });
+    }
+  }
+  function rain(n = 160) {
+    if (reduce) return;
+    for (let i = 0; i < n; i++) parts.push({ x: Math.random() * W, y: -20 - Math.random() * 500, vx: Math.random() * 4 - 2, vy: Math.random() * 3 + 2, w: Math.random() * 12 + 6, h: Math.random() * 7 + 4, r: Math.random() * 6, vr: Math.random() * .3 - .15, c: COLORS[i % COLORS.length], life: 1.6 });
+  }
+  function drawFx() {
+    fctx.clearRect(0, 0, W, H);
+    parts = parts.filter(p => p.life > 0 && p.y < H + 40);
+    for (const p of parts) {
+      p.vy += .32; p.vx *= .985; p.x += p.vx; p.y += p.vy; p.r += p.vr; p.life -= .006;
+      fctx.save(); fctx.translate(p.x, p.y); fctx.rotate(p.r); fctx.globalAlpha = Math.min(1, p.life);
+      fctx.fillStyle = p.c; fctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * Math.abs(Math.cos(p.r * 2))); fctx.restore();
+    }
+  }
+  (function loop(t) { drawBg(t); drawFx(); requestAnimationFrame(loop); })(0);
+
+  /* ---------- per-slide timers ---------- */
+  let timers = [];
+  const later = (fn, ms) => timers.push(setTimeout(fn, ms));
+  const every = (fn, ms) => timers.push(setInterval(fn, ms));
+  const clearTimers = () => { timers.forEach(t => { clearTimeout(t); clearInterval(t); }); timers = []; };
+
+  /* ---------- 1. title buzzer ---------- */
+  const tb = document.getElementById('titleBuzzer');
+  tb.addEventListener('click', () => {
+    buzzSound(); tb.classList.add('hit'); setTimeout(() => tb.classList.remove('hit'), 160);
+    const r = tb.getBoundingClientRect(), sr = stage.getBoundingClientRect(), k = W / sr.width;
+    burst((r.left + r.width / 2 - sr.left) * k, (r.top + r.height / 2 - sr.top) * k, 90);
+  });
+
+  /* ---------- 3. keyboard ---------- */
+  const kb = document.getElementById('kb');
+  ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'].forEach(row => {
+    const r = document.createElement('div'); r.className = 'row';
+    [...row].forEach(ch => {
+      const k = document.createElement('div'); k.className = 'key'; k.textContent = ch; k.dataset.k = ch;
+      const p = byKey[ch];
+      if (p) { k.classList.add('p'); k.style.setProperty('--c', p.c); const pop = document.createElement('span'); pop.className = 'pop'; pop.textContent = p.n + ' 버저!'; k.appendChild(pop); }
+      r.appendChild(k);
+    });
+    kb.appendChild(r);
+  });
+  document.getElementById('legend').innerHTML = PLAYERS.map(p => `<div><b style="--c:${p.c}">${p.k}</b>참가자 ${p.n}</div>`).join('');
+  function kbDemo() {
+    every(() => {
+      const p = PLAYERS[Math.floor(Math.random() * PLAYERS.length)];
+      const el = kb.querySelector(`[data-k="${p.k}"]`);
+      el.classList.remove('press'); void el.offsetWidth; el.classList.add('press');
+      setTimeout(() => el.classList.remove('press'), 650);
+    }, 520);
+  }
+
+  /* ---------- 6. race ---------- */
+  const lanesEl = document.getElementById('lanes'), logEl = document.getElementById('serverLog');
+  const racers = PLAYERS.slice(0, 4).map((p, i) => ({ ...p, name: ['민준', '서연', '지호', '하은'][i] }));
+  lanesEl.innerHTML = racers.map(p => `<div class="lane" style="--c:${p.c}"><span class="k">${p.k}</span><div class="track"><div class="bar">${p.name}</div><span class="medal"></span></div><span class="ms">— ms</span></div>`).join('');
+  function race() {
+    clearTimers();
+    const lanes = [...lanesEl.children];
+    logEl.innerHTML = '<span class="hd">// server · buzz 수신 로그</span>';
+    const add = html => { const d = document.createElement('div'); d.innerHTML = html; logEl.appendChild(d); };
+    add(`<span class="t">setBuzzer</span> active=true`);
+    const times = racers.map(() => Math.round(150 + Math.random() * 520));
+    const order = times.map((t, i) => [t, i]).sort((a, b) => a[0] - b[0]);
+    lanes.forEach(l => { l.classList.remove('done'); const b = l.querySelector('.bar'); b.style.transition = 'none'; b.style.width = '0'; l.querySelector('.ms').textContent = '— ms'; });
+    void lanesEl.offsetWidth;
+    const scale = 2.6;
+    lanes.forEach((l, i) => { const b = l.querySelector('.bar'); b.style.transition = `width ${times[i] * scale}ms cubic-bezier(.3,.1,.4,1)`; b.style.width = '100%'; });
+    order.forEach(([t, i], rank) => {
+      later(() => {
+        const l = lanes[i]; l.classList.add('done');
+        l.querySelector('.ms').textContent = `+${t} ms`;
+        l.querySelector('.medal').textContent = rank + 1;
+        add(`<span class="t">buzz</span> key="${racers[i].k}" → ${rank + 1}위 <span style="color:var(--muted)">(${t}ms)</span>`);
+        beep(400 + (4 - rank) * 120, .12, 'square', .05);
+      }, t * scale + 60);
+    });
+    later(() => add(`<span class="t">buzz</span> key="${racers[order[0][1]].k}" → 중복 입력 무시`), order[3][0] * scale + 500);
+    later(() => { add(`<span class="t">roomState</span> → 호스트 · 뷰어 방송`); burst(1160, 300, 50, .6); }, order[3][0] * scale + 900);
+  }
+  document.getElementById('raceAgain').addEventListener('click', race);
+
+  /* ---------- 7. judge ---------- */
+  const jcards = [...document.querySelectorAll('#judgeCards .jcard')];
+  const baseScores = [2, 3, 1];
+  function judgeDemo() {
+    const cycle = () => {
+      jcards.forEach((c, i) => { c.className = 'jcard a'; c.querySelector('.stamp').classList.remove('show'); c.querySelector('strong').textContent = baseScores[i]; });
+      later(() => jcards[0].classList.add('turn'), 700);
+      later(() => { jcards[0].classList.remove('turn'); jcards[0].classList.add('wrong'); jcards[0].querySelector('.stamp').classList.add('show'); jcards[0].querySelector('strong').textContent = baseScores[0] - 1; failSound(); }, 2200);
+      later(() => jcards[1].classList.add('turn'), 3300);
+      later(() => { jcards[1].classList.remove('turn'); jcards[1].classList.add('right'); jcards[1].querySelector('.stamp').classList.add('show'); jcards[1].querySelector('strong').textContent = baseScores[1] + 1; dingSound(); burst(800, 420, 110); }, 4800);
+    };
+    cycle(); every(cycle, 8000);
+  }
+
+  /* ---------- 10. typer ---------- */
+  const code = `<span class="n">{</span>
+  <span class="k">"code"</span>: <span class="s">"K7Q2XA"</span>,
+  <span class="k">"currentSlide"</span>: <span class="n">4</span>,
+  <span class="k">"slides"</span>: [<span class="s">"slide-01.png"</span>, …],
+  <span class="k">"players"</span>: [
+    { <span class="k">"name"</span>: <span class="s">"민준"</span>, <span class="k">"key"</span>: <span class="s">"Q"</span>, <span class="k">"score"</span>: <span class="n">3</span> },
+    { <span class="k">"name"</span>: <span class="s">"서연"</span>, <span class="k">"key"</span>: <span class="s">"P"</span>, <span class="k">"score"</span>: <span class="n">2</span> },
+    { <span class="k">"name"</span>: <span class="s">"지호"</span>, <span class="k">"key"</span>: <span class="s">"Z"</span>, <span class="k">"score"</span>: <span class="n">1</span> }
+  ],
+  <span class="k">"ended"</span>: <span class="n">false</span>,
+  <span class="k">"updatedAt"</span>: <span class="n">1763520000000</span>
+<span class="n">}</span>`;
+  const typer = document.getElementById('typer');
+  function typeCode() {
+    if (reduce) { typer.innerHTML = code; return; }
+    // tokenise into tags (instant) and characters (typed)
+    const tokens = code.match(/<[^>]+>|&[a-z]+;|[\s\S]/g);
+    let i = 0, out = '';
+    typer.innerHTML = '<span class="caret"></span>';
+    every(() => {
+      for (let n = 0; n < 3 && i < tokens.length; n++) {
+        while (i < tokens.length && tokens[i].startsWith('<')) out += tokens[i++];
+        if (i < tokens.length) out += tokens[i++];
+      }
+      typer.innerHTML = out + '<span class="caret"></span>';
+    }, 22);
+  }
+
+  /* ---------- 12. live demo ---------- */
+  const liveKeys = document.getElementById('liveKeys'), boardList = document.getElementById('boardList'), boardEmpty = document.getElementById('boardEmpty');
+  const lamp = document.getElementById('lamp'), liveText = document.getElementById('liveText');
+  liveKeys.innerHTML = PLAYERS.map(p => `<button class="lkey" data-k="${p.k}" style="--c:${p.c}"><b>${p.k}</b><span>참가자 ${p.n}</span></button>`).join('');
+  let live = { open: false, at: 0, hits: [] };
+  function openBuzzer() {
+    clearTimers();
+    live = { open: false, at: 0, hits: [] };
+    boardList.innerHTML = ''; boardEmpty.hidden = false;
+    liveKeys.querySelectorAll('.lkey').forEach(b => b.classList.remove('used'));
+    lamp.classList.remove('on');
+    let n = 3; liveText.textContent = `${n}…`;
+    every(() => {
+      n--;
+      if (n > 0) { liveText.textContent = `${n}…`; beep(600, .08, 'sine', .06); }
+      else if (n === 0) { live.open = true; live.at = performance.now(); lamp.classList.add('on'); liveText.textContent = '버저 열림! 지금 누르세요'; beep(1000, .2, 'sine', .1); clearTimers(); }
+    }, 700);
+  }
+  function hit(k) {
+    const p = byKey[k]; if (!p) return;
+    const btn = liveKeys.querySelector(`[data-k="${k}"]`);
+    btn.classList.add('press'); setTimeout(() => btn.classList.remove('press'), 120);
+    if (!live.open || live.hits.some(h => h.k === k)) return;
+    const ms = Math.round(performance.now() - live.at);
+    live.hits.push({ k, ms });
+    btn.classList.add('used');
+    boardEmpty.hidden = true;
+    const li = document.createElement('li');
+    li.innerHTML = `<span class="r">${live.hits.length}</span><span class="kk" style="--c:${p.c}">${k}</span><span class="nm">참가자 ${p.n}</span><span class="t">+${(ms / 1000).toFixed(3)}s</span>`;
+    boardList.appendChild(li);
+    if (live.hits.length === 1) { buzzSound(); burst(1250, 260, 100); liveText.textContent = `참가자 ${p.n} 1등!`; }
+    else beep(500, .1, 'square', .05);
+  }
+  liveKeys.addEventListener('click', e => { const b = e.target.closest('.lkey'); if (b) hit(b.dataset.k); });
+  document.getElementById('openBuzz').addEventListener('click', openBuzzer);
+
+  /* ---------- navigation ---------- */
+  const dots = document.getElementById('dots');
+  dots.innerHTML = slides.map((s, i) => `<button aria-label="${i + 1}번 슬라이드: ${s.getAttribute('aria-label')}"></button>`).join('');
+  [...dots.children].forEach((d, i) => d.addEventListener('click', () => go(i)));
+  document.getElementById('tot').textContent = slides.length;
+  const wipe = document.getElementById('wipe');
+  let cur = -1;
+  const enter = {
+    idea: kbDemo,
+    fair: () => later(race, 900),
+    judge: () => later(judgeDemo, 600),
+    ceremony: () => { later(() => burst(800, 330, 160, 1.1), 2700); later(() => rain(160), 3000); },
+    reuse: () => later(typeCode, 700),
+    live: () => later(openBuzzer, 900),
+    thanks: () => { later(() => rain(220), 500); later(() => { burst(400, 400, 90); burst(1200, 400, 90); }, 900); }
+  };
+  function go(n, instant) {
+    n = Math.max(0, Math.min(slides.length - 1, n));
+    if (n === cur) return;
+    clearTimers(); live.open = false;
+    const show = () => {
+      slides.forEach((s, i) => s.classList.toggle('active', i === n));
+      cur = n;
+      document.getElementById('cur').textContent = n + 1;
+      document.getElementById('progress').style.width = ((n + 1) / slides.length * 100) + '%';
+      [...dots.children].forEach((d, i) => d.classList.toggle('on', i === n));
+      stage.scrollTop = 0; stage.scrollLeft = 0;
+      const name = slides[n].dataset.name;
+      try { history.replaceState(null, '', '#' + name); } catch (e) {}
+      enter[name] && enter[name]();
+    };
+    if (instant || reduce) { show(); return; }
+    wipe.classList.remove('go'); void wipe.offsetWidth; wipe.classList.add('go');
+    slides.forEach(s => s.classList.remove('active'));
+    setTimeout(show, 330);
+  }
+  const next = () => go(cur + 1), prev = () => go(cur - 1);
+  document.getElementById('nextBtn').addEventListener('click', next);
+  document.getElementById('prevBtn').addEventListener('click', prev);
+  document.getElementById('fsBtn').addEventListener('click', () => {
+    try {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else document.documentElement.requestFullscreen().catch(() => {});
+    } catch (e) {}
+  });
+  addEventListener('keydown', e => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const k = e.key;
+    if (['ArrowRight', 'PageDown', ' ', 'Enter'].includes(k)) {
+      if (k === 'Enter' && document.activeElement && document.activeElement.tagName === 'BUTTON') return;
+      e.preventDefault(); next();
+    }
+    else if (['ArrowLeft', 'PageUp', 'Backspace'].includes(k)) { e.preventDefault(); prev(); }
+    else if (k === 'Home') go(0);
+    else if (k === 'End') go(slides.length - 1);
+    else if (k.toLowerCase() === 'f' && slides[cur].dataset.name !== 'live') document.getElementById('fsBtn').click();
+    else if (slides[cur].dataset.name === 'live' && !e.repeat) hit(k.toUpperCase());
+    else if (slides[cur].dataset.name === 'title' && byKey[k.toUpperCase()]) tb.click();
+  });
+  let sx = null;
+  stage.addEventListener('pointerdown', e => { sx = e.clientX; });
+  stage.addEventListener('pointerup', e => { if (sx === null) return; const dx = e.clientX - sx; sx = null; if (Math.abs(dx) > 60) dx < 0 ? next() : prev(); });
+
+  const start = slides.findIndex(s => '#' + s.dataset.name === location.hash);
+  go(start < 0 ? 0 : start, true);
+  addEventListener('hashchange', () => { const i = slides.findIndex(s => '#' + s.dataset.name === location.hash); if (i >= 0) go(i); });
+})();
+</script>
+</body>
+</html>

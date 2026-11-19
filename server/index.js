@@ -36,6 +36,7 @@ loadRooms();
 app.set("trust proxy", 1);
 app.use(express.json());
 app.use("/uploads", express.static(uploadRoot));
+app.use("/presentation", express.static(path.join(rootDir, "presentation")));
 app.use(express.static(distDir));
 
 app.get("/healthz", (req, res) => {

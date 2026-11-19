@@ -47,6 +47,10 @@ docker build -t speed-quiz-show .
 docker run -p 4000:4000 -v speed-quiz-uploads:/app/uploads speed-quiz-show
 ```
 
+## 발표 자료
+
+`presentation/index.html`은 이 프로젝트를 소개하는 애니메이션 웹 발표 자료입니다. 파일을 브라우저로 바로 열거나, 서버 실행 후 `/presentation/`에서 볼 수 있습니다. 방향키·스페이스로 넘기고 `F`로 전체화면을 켭니다.
+
 ## 진행 흐름
 
 1. 호스트가 `방 만들기`를 누릅니다.
