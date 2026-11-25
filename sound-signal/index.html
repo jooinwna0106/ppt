@@ -129,12 +129,12 @@ h2 .go { color: var(--go); } h2 .stop { color: var(--stop); } h2 .wait { color: 
 @keyframes say { from { transform: scale(.3); opacity: 0; } }
 
 /* ---------- team ---------- */
-.team { display: grid; grid-template-columns: repeat(5, 1fr); gap: 26px; margin-top: 60px; }
+.team { display: grid; grid-template-columns: repeat(6, 1fr); gap: 20px; margin-top: 60px; }
 .mem { display: grid; justify-items: center; gap: 10px; padding: 40px 20px 34px; border-radius: 28px; background: rgba(255,255,255,.04); border: 2px solid color-mix(in srgb, var(--c) 55%, transparent); }
-.mem .av { width: 140px; height: 140px; border-radius: 50%; display: grid; place-items: center; background: var(--c); color: #15171c; font-family: var(--display); font-size: 46px; box-shadow: 0 0 50px color-mix(in srgb, var(--c) 40%, transparent); margin-bottom: 10px; }
+.mem .av { width: 124px; height: 124px; border-radius: 50%; display: grid; place-items: center; background: var(--c); color: #15171c; font-family: var(--display); font-size: 46px; box-shadow: 0 0 50px color-mix(in srgb, var(--c) 40%, transparent); margin-bottom: 10px; }
 .slide.active .mem .av { animation: bob 2.4s ease-in-out infinite; animation-delay: calc(var(--d) * 1ms); }
 @keyframes bob { 50% { transform: translateY(-12px); } }
-.mem b { font-family: var(--display); font-weight: 400; font-size: 44px; }
+.mem b { font-family: var(--display); font-weight: 400; font-size: 40px; }
 .mem small { font-size: 20px; color: var(--muted); }
 
 /* ---------- 2 interest ---------- */
@@ -375,6 +375,7 @@ h2 .go { color: var(--go); } h2 .stop { color: var(--stop); } h2 .wait { color: 
         <div class="mem a tilt" style="--d:700; --c: var(--stop)"><span class="av">유나</span><b>박유나</b><small>모둠원</small></div>
         <div class="mem a tilt" style="--d:850; --c: var(--sound)"><span class="av">하율</span><b>명하율</b><small>모둠원</small></div>
         <div class="mem a tilt" style="--d:1000; --c: #c9a6ff"><span class="av">승규</span><b>이승규</b><small>모둠원</small></div>
+        <div class="mem a tilt" style="--d:1150; --c: #ff9f6b"><span class="av">재윤</span><b>안재윤</b><small>모둠원</small></div>
       </div>
     </section>
 
@@ -597,7 +598,7 @@ h2 .go { color: var(--go); } h2 .stop { color: var(--stop); } h2 .wait { color: 
     <section class="slide" data-name="proposal" aria-label="정책 제안서 1">
       <p class="eyebrow a" style="--d:0"><span class="step">5</span>정책 제안서</p>
       <div class="form a" style="--d:150">
-        <div class="r two row-anim" style="--d:0"><div class="k">제안자</div><div class="v"><b style="color:#15171c">강지완</b> 외 4명<br><span style="font-size:19px;color:#555">모둠 ‘강지완과 친구들’: 강지완, 김대연, 박유나, 명하율, 이승규</span></div><div class="k">소속</div><div class="v">KIS (호치민한국국제학교)</div></div>
+        <div class="r two row-anim" style="--d:0"><div class="k">제안자</div><div class="v"><b style="color:#15171c">강지완</b> 외 5명<br><span style="font-size:19px;color:#555">모둠 ‘강지완과 친구들’: 강지완, 김대연, 박유나, 명하율, 이승규, 안재윤</span></div><div class="k">소속</div><div class="v">KIS (호치민한국국제학교)</div></div>
         <div class="r row-anim" style="--d:150"><div class="k">제안 분야</div><div class="v checks"><span><i></i>환경</span><span><i></i>안전</span><span><i></i>생활</span><span><i></i>지역(학교)</span><span class="on"><i>✓</i>교통</span><span><i></i>기타</span></div></div>
         <div class="r row-anim" style="--d:300"><div class="k">제안 주제</div><div class="v"><b>베트남 주요 횡단보도에 시각장애인용 음향신호기(소리 신호등)를 설치하자</b></div></div>
         <div class="r row-anim" style="--d:450"><div class="k">제안 사유</div><div class="v"><ul>
@@ -640,7 +641,7 @@ h2 .go { color: var(--go); } h2 .stop { color: var(--stop); } h2 .wait { color: 
         <div class="tl-row a" style="--d:0"><i></i><i></i><i></i></div>
         <h2 class="a zoom" style="--d:200">감사합니다</h2>
         <p class="lead a" style="--d:500">모두가 <b>소리로</b> 안전하게 건널 수 있는 베트남을 꿈꿉니다.</p>
-        <p class="lead a" style="--d:700"><b style="color:var(--go)">강지완과 친구들</b> · 강지완 · 김대연 · 박유나 · 명하율 · 이승규</p>
+        <p class="lead a" style="--d:700"><b style="color:var(--go)">강지완과 친구들</b> · 강지완 · 김대연 · 박유나 · 명하율 · 이승규 · 안재윤</p>
       </div>
     </section>
 
